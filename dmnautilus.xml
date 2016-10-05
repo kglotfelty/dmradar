@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE cxchelptopics SYSTEM "CXCHelp.dtd">
+<cxchelptopics>
+   <ENTRY context="tools" key="dmnautilus" refkeywords="dm adaptive binning grouping group recursive shell quad tree nautilus" seealsogroups="dmimgtools">
+   <SYNOPSIS>
+	Perform a quad-tree adaptive binning on 2D images
+   </SYNOPSIS>
+   <DESC>
+      <PARA>
+	`dmnautilus' does a form of adaptive binning of a 2D image
+	known as a 'quad-tree' algorithm. 
+        </PARA>
+ 
+
+      <PARA>
+	The tool computes the
+	signal-to-noise ratio (SNR) for the entire image and
+    for the four sub-images taken by dividing the 
+    axis lengths in half.  Based on the 'method' parameter
+    the algorithm will then either accept the full image, or
+    iterate over each of the sub-images, repeating the divide-by-two 
+    algorithm until the threshold criteria is met or a single pixel
+    remains.
+        </PARA>
+
+
+    <PARA>
+    With method=1, if the SNR of any one of the sub-image greater than the 
+    input threshold, then the sub-images are used.
+    </PARA>
+    <PARA>
+    With method=2, if the SNR of two sub-image that share a common side (ie not 
+    diagonal) are greater than the input threshold then the sub-images are used.    
+    </PARA>
+    <PARA>
+    With method=3, if the SNR of any three of the sub-images is greater than
+    the input threshold, then the sub-images are used.
+    </PARA>
+    <PARA>
+    With method=4, the SNR of all of the sub-images must be above the threshold
+    for the sub-images to be used.  This is the most strict 
+    lower limit test; it may lead to some unexpected behavior with
+    rotated images -- especially around the edge of the image.
+    Users may see better results by rotating images to make the 
+    edges parallel to the X and Y axes.
+    </PARA>
+
+    <PARA>
+    With method=0, if the SNR of the entire image is greater than the
+	input threshold, the sub-images are used. This make the threshold
+    behave as an upper limit (image keeps dividing until SNR of the
+    sub-image falls  below the threshold).       A description of
+	the technique can be found in Samet, H. "The Quadtree and
+	Related Hierarchical Data Structures", 1984, ACM Computing 
+	Surveys, 16, 187.  
+    </PARA>
+    
+    <PARA>
+     For each sub-image, the process is repeated until the SNR 
+     criteria is met.    
+    </PARA>
+
+    <PARA>
+    	The output pixels are then the sum of the pixels in
+	the sub-image divided by the area of the sub-image.  The tool
+	can also optionally output the area, SNR, and a mask/group
+	number for each output pixel. 
+	</PARA>
+
+
+
+      <PARA>
+	Pixels that fall outside of the data subspace, NaNs, and
+	integer NULL value pixels are all ignored when computing the
+	sum, area and SNR. 
+      </PARA>
+
+
+	<PARA>
+	 If no error file is supplied (inerrfile parameter), then a
+	 Gaussian approximation "(sqrt(image value))" is used. If an
+	 error file is supplied, it must be the same size as the input
+	 image.   
+      </PARA>
+
+	<PARA>
+	The output mask file can be used with 
+	<HREF link="http://cxc.harvard.edu/ciao/ahelp/dmmaskbin.html">dmmaskbin</HREF> to group
+	another image of the same dimensions using the same bin
+	sizes.  This is useful say to group the data based on
+	broad-band energy filter and then group narrow band images
+	using the same grouping scheme.
+	</PARA>
+
+	<PARA>
+	  While square images will give the most natural-looking
+	  binning, rectangular images can be input and rectangular
+	  bins will be used.  
+	</PARA>
+    <PARA title="Image Edges">
+      There is some special treatment for the edge of images, or
+      more specifically, pixels outside the subspace.  If all 
+      the pixels in the sub-image are outside the subspace, then
+      that sub-image will be treated as having a SNR above threshold.
+      This allows for some better edge handing when working
+      with images that contain large borders or gaps of unexposed 
+      pixels.          
+    </PARA>
+
+
+
+   </DESC>
+   <QEXAMPLELIST>
+      <QEXAMPLE>
+         <SYNTAX>
+            <LINE>
+	dmnautilus inimg.fits outimg.fits 9 method=0
+            </LINE>
+         </SYNTAX>
+         <DESC>
+            <PARA>
+	  Adaptivly bins the image in inimg.fits to a SNR threshold of
+	  9.  Since no error image is supplied the SNR is computed as
+	  the sqrt(inimg.fits).
+            </PARA>
+         </DESC>
+      </QEXAMPLE>
+      <QEXAMPLE>
+         <SYNTAX>
+            <LINE>
+	dmnautilus inimg.fits outimg.fits 15 inerr=errs.fits method=0
+            </LINE>
+         </SYNTAX>
+         <DESC>
+            <PARA>
+	Bins the input image to a SNR threshold of 15.  The error of
+	each pixel is  taken from the errs.fits file.
+            </PARA>
+         </DESC>
+      </QEXAMPLE>
+      <QEXAMPLE>
+         <SYNTAX>
+            <LINE>
+	dmnautilus inimg.fits outimg.fits 9 outmaskfile=mask.fits method=4
+            </LINE>
+         </SYNTAX>
+         <DESC>
+            <PARA>
+	Similar to Example 1 but outputs the mask information.  Each
+	pixel in the mask.fits file indicates which group the pixel
+	was assigned to.  With method=4 and no input error 
+    image, the output will contain bins with a minimum SNR=9 (ie 
+    81 counts).
+            </PARA>
+         </DESC>
+      </QEXAMPLE>
+      <QEXAMPLE>
+         <SYNTAX>
+            <LINE>
+	dmnautilus inimg.fits . 9 outmask=. outsnr=. outarea=. method=4
+            </LINE>
+         </SYNTAX>
+         <DESC>
+            <PARA>
+	Similar to above but also outputs the output SNR threshold
+	image and the area image.  It uses autonaming to name the
+	outfile, outmaskfile, outsnrfile, and outareafile files.
+            </PARA>
+         </DESC>
+      </QEXAMPLE>
+   </QEXAMPLELIST>
+
+
+   <PARAMLIST>
+      <PARAM filetype="input" name="infile" reqd="yes" type="file">
+         <SYNOPSIS>
+	  Input 2D image
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	  Image to be adaptive binned.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM autoname="yes" filetype="output" name="outfile" reqd="yes" type="file">
+         <SYNOPSIS>
+	Output adaptive binned image.
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	Output of the adaptive binning routine.  Data will be stored
+	as floating point values.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM def="0" min="0" name="snr" reqd="yes" type="real">
+         <SYNOPSIS>
+	Signal-To-Noise-Ratio threshold
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	The signal to noise ration to split the image into 4
+	sub-images.  It may seem unnatural but this is an upper-limit
+	on the SNR.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM type="integer" name="method" def="0" min="0" max="4">
+        <SYNOPSIS>
+        SNR threshold method
+        </SYNOPSIS>
+        <DESC>        
+          <PARA>
+            The method parameter describes the number of sub-images
+            that must be above the SNR threshold for the sub-images
+            to be further divided.   A value of 1 means that only 1 of the 
+            sub-images must be above threshold for them all to be
+            divided.  A value of 2 means that two sub-images that
+            specifically share a common side (ie not diagonal) 
+            are above threshold then all 4 sub-images are divided. 
+            3 requires any three sub-image be above threshold, and 4
+            requires all 4 sub-image be above threshold for them
+            to be further subdivided.  
+                            
+          </PARA>        
+          <PARA>
+            The value of 0 is different in that the sub-images are 
+            always divided if the parent image is above the SNR threshold.
+            So while the other methods act as lower limits, a
+            value of 0 acts as an upper limit.          
+          </PARA>
+
+        </DESC>
+      </PARAM>
+
+
+      <PARAM filetype="input" name="inerrfile" reqd="no" type="file">
+         <SYNOPSIS>
+	   Input error image
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	      Image containing the error estimate for each pixel in
+	      infile. The square of the pixel values is used when
+	      computing the SNR.  The error image must be the same
+	      dimensionality as infile (datatype is arbitrary). 
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM autoname="yes" filetype="output" name="outmaskfile" reqd="no" type="file">
+         <SYNOPSIS>
+	 Image with grouping information
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	      Indicated which group number (arbitrary) the pixel belongs
+	      to.  Can be used with <HREF link="http://cxc.harvard.edu/ciao/ahelp/dmmaskbin.html">dmmaskbin</HREF> to bin another image of the same
+	      dimension using the same grouping scheme.
+	</PARA>
+         </DESC>
+      </PARAM>
+      <PARAM autoname="yes" filetype="output" name="outsnrfile" reqd="no" type="file">
+         <SYNOPSIS>
+	Image containg the SNR for each pixel/sub-image
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	The SNR value computed for each sub-image is stored in this
+	file.  Sharp edges in the SNR map can be used to detect
+	extended emission.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM autoname="yes" filetype="output" name="outareafile" reqd="no" type="file">
+         <SYNOPSIS>
+	The area (in number of pixels) of each sub-image.
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	The area of each sub-image is stored.  This can be useful to
+	exclude particularly large regions where statistics may
+	dominate the analysis or to remove data from the edge of the
+	image.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM def="0" max="0" min="0" name="verbose" reqd="no" type="integer">
+         <SYNOPSIS>
+	Tool chatter level
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	Currently disabled.
+            </PARA>
+         </DESC>
+      </PARAM>
+      <PARAM def="no" name="clobber" reqd="no" type="boolean">
+         <SYNOPSIS>
+	Remove existing outputs?
+         </SYNOPSIS>
+         <DESC>
+            <PARA>
+	Remove existing output files if they already exist?
+            </PARA>
+         </DESC>
+      </PARAM>
+   </PARAMLIST>
+
+  <ADESC title="Changes in CIAO X.Y.Z">
+    <PARA>
+    The 'method' parameter is new.  The original behavior of the 
+    tool, which uses the SNR as an upper limit (keeps dividing the
+    image until the SNR drops below the limit) is achieved using
+    method=0.
+    </PARA>
+    <PARA>
+    Setting method=1, 2, 3, or 4 allows using the SNR as a lower limit
+    with increasing strictness on the number of sub-images that must
+    exceed the SNR for them to be further divided.    
+    </PARA>
+
+  </ADESC>
+
+
+
+   <BUGS><PARA>
+	See the
+        <HREF link="http://cxc.harvard.edu/ciao/bugs/dmnautilus.html">bugs page
+	for this tool</HREF>
+        on the CIAO website for an up-to-date listing of known bugs.
+      </PARA></BUGS>
+   <LASTMODIFIED>May 2015</LASTMODIFIED>
+</ENTRY>
+</cxchelptopics>
