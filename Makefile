@@ -12,9 +12,9 @@ EXEC              = dmradar
 LIB_FILES = 
 PAR_FILES         = dmradar.par
 INC_FILES         = 
-XML_FILES         = dmnautilus.xml
+XML_FILES         = dmradar.xml
 
-SRCS	=           dmnautilus.c t_dmnautilus.c
+SRCS	=           dmradar.c t_dmradar.c
 
 LOCAL_LIBS = -L$(MK_TOP)/da/analysis/dmtools/dmimgio/ -ldmimgio
 LOCAL_INC  = -I$(MK_TOP)/da/analysis/dmtools/dmimgio/
@@ -22,7 +22,7 @@ LOCAL_INC  = -I$(MK_TOP)/da/analysis/dmtools/dmimgio/
 OBJS = $(SRCS:.c=.o)
 
 
-MAKETEST_SCRIPT   = dmnautilus.t
+MAKETEST_SCRIPT   = dmradar.t
 
 
 include $(MK_TOP)/Makefile.all
@@ -40,7 +40,7 @@ $(EXEC): $(OBJS)
 
 announce1:
 	@echo "   /----------------------------------------------------------\ "
-	@echo "   |                Building dmnautilus                       | "
+	@echo "   |                Building dmradar                       | "
 	@echo "   \----------------------------------------------------------/ "
 
 
