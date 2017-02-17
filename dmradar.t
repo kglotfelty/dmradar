@@ -25,7 +25,8 @@
 # dmradar.t [<testid> ... ]
  
 
-
+LD_LIBRARY_PATH=$ASCDS_INSTALL/lib:$ASCDS_INSTALL/ots/lib
+export LD_LIBRARY_PATH
 
 ######################################################################
 # subroutine

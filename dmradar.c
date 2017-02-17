@@ -238,8 +238,7 @@ double get_snr(double r_min,
     noise = 0.0;
     *area = 0;
 
-    regRegion *reg =
-        make_pie(NULL, r_min, r_len, a_min, a_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_pie(NULL, r_min, r_len, a_min, a_len, &xs, &xl, &ys, &yl);
 
 
     /* Determine SNR for current sub-image */
@@ -277,7 +276,7 @@ double get_snr(double r_min,
 
         }
     }
-
+    regFree(reg);
 
     locsnr = val / sqrt(noise);
     *oval = val;
@@ -364,8 +363,8 @@ void fill_region(double r_min,
 
 
     /* Add to the global region definition */
-    make_pie(maskRegion, r_min, r_len, a_min, a_len, NULL, NULL, NULL,
-             NULL);
+    reg = make_pie(maskRegion, r_min, r_len, a_min, a_len, NULL, NULL, NULL, NULL);
+    regFree(reg);
 
 
     return;
@@ -380,17 +379,6 @@ void abin_rec(double r_min,
               double r_len, 
               double a_len)
 {
-
-
-    long xs;                    /* i: start of x-axis (sub img) */
-    long ys;                    /* i: start of y-axis (sub img) */
-    long xl;                    /* i: length of x-axis (sub img) */
-    long yl;                    /* i: length of y-axis (sub img) */
-
-    regRegion *reg =
-        make_pie(NULL, r_min, r_len, a_min, a_len, &xs, &xl, &ys, &yl);
-    regFree(reg);               // We just need the bounds 
-
 
     short check = 0;
     if (ZERO_ABOVE == GlobalSplitCriteria) {
