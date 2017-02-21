@@ -33,7 +33,7 @@
 #define FLOOR(x)  ((double)(x))
 #define CEIL(x)   ((double)(x))
 
-regRegion *maskRegion;
+regRegion *GlobalMaskRegion;
 
 
 /* Okay, global variables are a bad idea, excpet when doing recursion and
@@ -363,8 +363,7 @@ void fill_region(double r_min,
 
 
     /* Add to the global region definition */
-    reg = make_pie(maskRegion, r_min, r_len, a_min, a_len, NULL, NULL, NULL, NULL);
-    regFree(reg);
+    make_pie(GlobalMaskRegion, r_min, r_len, a_min, a_len, NULL, NULL, NULL, NULL);
 
 
     return;
@@ -635,7 +634,7 @@ int abin(void)
     GlobalOutArea = (float *) calloc(npix, sizeof(float));
     GlobalOutSNR = (float *) calloc(npix, sizeof(float));
     GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long));
-    maskRegion = regCreateEmptyRegion();
+    GlobalMaskRegion = regCreateEmptyRegion();
 
     if (0 != load_error_image(errimg)) {
         return -1;
@@ -723,7 +722,7 @@ int abin(void)
             dmSetArray_ul(outDes, GlobalMask, npix);
 
             dmBlockClose(dmTableWriteRegion(dmBlockGetDataset(outBlock),
-                                            "REGION", NULL, maskRegion));
+                                            "REGION", NULL, GlobalMaskRegion));
 
             dmImageClose(outBlock);
         } else {
