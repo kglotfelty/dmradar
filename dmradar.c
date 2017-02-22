@@ -181,6 +181,22 @@ regRegion *make_pie(regRegion *inreg,
         reg_ang[1] = a_min + a_len;
         regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
                        reg_ang, 0, 0);
+
+#if 0
+        double r[2];
+        r[0] = r[1] = r_min+r_len;
+        regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
+                       &GlobalStartAngle, 0, 0);
+        r[0] = r[1] = r_min;
+        regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
+                       &GlobalStartAngle, 0, 0);
+
+        regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
+                       reg_ang, 0, 0);
+
+        //regPrintRegion(reg);
+#endif
+
     } else {
         //double xx = r_min + r_len / 2.0;
         //double yy = a_min + a_len / 2.0;
