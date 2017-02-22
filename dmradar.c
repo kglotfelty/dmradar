@@ -78,6 +78,9 @@ double GlobalMinAngle;          // = 1 ;
 
 
 
+#define RADAR 1
+
+
 /* ------Prototypes ----------------------- */
 
 int load_error_image(char *errimg);
@@ -169,7 +172,7 @@ regRegion *make_pie(regRegion *inreg,
     regRegion *reg;
     reg = inreg ? inreg : regCreateEmptyRegion();
 
-    if (0) {
+    if ( RADAR ) {
         double reg_rad[2];
         double reg_ang[2];
         reg_rad[0] = r_min;
@@ -383,7 +386,7 @@ void abin_rec(double r_min,
     double pp[4], qq[4], dpp, dqq;
     //    printf("point(%g,%g)\n", r_min, a_min);
 
-    if ( 0 ) {
+    if ( RADAR ) {
         dpp = r_len/2.0;
         dqq = a_len/2.0;
         pp[0] = r_min;     qq[0] = a_min;
@@ -399,23 +402,35 @@ void abin_rec(double r_min,
         double c_a = cos(rad_ang);
         double s_a = sin(rad_ang);
 
-        double z_x = r_min; //(r_min-GlobalX0)*c_a - (a_min-GlobalY0)*s_a + GlobalX0;
-        double z_y = a_min; //(r_min-GlobalX0)*s_a + (a_min-GlobalY0)*c_a + GlobalY0;
-
-        rot_x = dpp*c_a;
-        rot_y = dqq*c_a;
-
-        pp[0] = z_x-rot_x;  // ll
-        qq[0] = z_y-rot_y;
+        // rotate r_min,a_min backwards: note cos(a) = cos(-a) and 
+        // -sin(a)=sin(-a)
         
-        pp[1] = z_x+rot_x; // lr
-        qq[1] = z_y-rot_y;
-        
-        pp[2] = z_x-rot_x;  // ul
-        qq[2] = z_y+rot_y;
+        double r0 =    (r_min-GlobalX0)*c_a + (a_min-GlobalY0)*s_a;
+        double a0 =   -(r_min-GlobalX0)*s_a + (a_min-GlobalY0)*c_a;
 
-        pp[3] = z_x+rot_x;  // ur
-        qq[3] = z_y+rot_y;
+        // Lower left -- rotate back
+        rot_x = r0-dpp;
+        rot_y = a0-dqq;
+        pp[0] = rot_x*c_a - rot_y*s_a + GlobalX0;
+        qq[0] = rot_x*s_a + rot_y*c_a + GlobalY0;
+        
+        // Lower right -- rotate back
+        rot_x = r0+dpp;
+        rot_y = a0-dqq;
+        pp[1] = rot_x*c_a - rot_y*s_a + GlobalX0;
+        qq[1] = rot_x*s_a + rot_y*c_a + GlobalY0;
+
+        // upper left -- rotate back
+        rot_x = r0-dpp;
+        rot_y = a0+dqq;
+        pp[2] = rot_x*c_a - rot_y*s_a + GlobalX0;
+        qq[2] = rot_x*s_a + rot_y*c_a + GlobalY0;
+
+        // upper right -- rotate back
+        rot_x = r0+dpp;
+        rot_y = a0+dqq;
+        pp[3] = rot_x*c_a - rot_y*s_a + GlobalX0;
+        qq[3] = rot_x*s_a + rot_y*c_a + GlobalY0;
 
         dpp = r_len/2.0;
         dqq = a_len/2.0;
@@ -683,7 +698,7 @@ int abin(void)
     /* Start Algorithm */
 
 
-    if ( 0 ) {
+    if ( RADAR ) {
 
         if (GlobalInnerRadius > 0) {
             fill_region(0, GlobalStartAngle, GlobalInnerRadius,
