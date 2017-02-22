@@ -169,7 +169,7 @@ regRegion *make_pie(regRegion *inreg,
     regRegion *reg;
     reg = inreg ? inreg : regCreateEmptyRegion();
 
-    if (1) {
+    if (0) {
         double reg_rad[2];
         double reg_ang[2];
         reg_rad[0] = r_min;
@@ -179,10 +179,10 @@ regRegion *make_pie(regRegion *inreg,
         regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
                        reg_ang, 0, 0);
     } else {
-        double xx = r_min + r_len / 2.0;
-        double yy = a_min + a_len / 2.0;
+        //double xx = r_min + r_len / 2.0;
+        //double yy = a_min + a_len / 2.0;
         double ll[2] = { r_len, a_len };
-        regAppendShape(reg, "Rotbox", 1, 1, &xx, &yy, 1, ll,
+        regAppendShape(reg, "Rotbox", 1, 1, &r_min, &a_min, 1, ll,
                        &GlobalStartAngle, 0, 0);
     }
 
@@ -372,12 +372,57 @@ void fill_region(double r_min,
 
 
 
+
 /* Recursive binning routine */
 void abin_rec(double r_min, 
               double a_min,  
               double r_len, 
               double a_len)
 {
+
+    double pp[4], qq[4], dpp, dqq;
+    //    printf("point(%g,%g)\n", r_min, a_min);
+
+    if ( 0 ) {
+        dpp = r_len/2.0;
+        dqq = a_len/2.0;
+        pp[0] = r_min;     qq[0] = a_min;
+        pp[1] = r_min+dpp; qq[1] = a_min;
+        pp[2] = r_min;     qq[2] = a_min+dqq;
+        pp[3] = r_min+dpp; qq[3] = a_min+dqq;        
+    } else {
+        dpp = r_len/4.0;
+        dqq = a_len/4.0;
+
+        double rot_x, rot_y;
+        double rad_ang = GlobalStartAngle*3.141592/180.0;
+        double c_a = cos(rad_ang);
+        double s_a = sin(rad_ang);
+
+        double z_x = r_min; //(r_min-GlobalX0)*c_a - (a_min-GlobalY0)*s_a + GlobalX0;
+        double z_y = a_min; //(r_min-GlobalX0)*s_a + (a_min-GlobalY0)*c_a + GlobalY0;
+
+        rot_x = dpp*c_a;
+        rot_y = dqq*c_a;
+
+        pp[0] = z_x-rot_x;  // ll
+        qq[0] = z_y-rot_y;
+        
+        pp[1] = z_x+rot_x; // lr
+        qq[1] = z_y-rot_y;
+        
+        pp[2] = z_x-rot_x;  // ul
+        qq[2] = z_y+rot_y;
+
+        pp[3] = z_x+rot_x;  // ur
+        qq[3] = z_y+rot_y;
+
+        dpp = r_len/2.0;
+        dqq = a_len/2.0;
+                
+    }
+
+
 
     short check = 0;
     if (ZERO_ABOVE == GlobalSplitCriteria) {
@@ -402,10 +447,10 @@ void abin_rec(double r_min,
 
         short ill, ilr, iul, iur;
 
-        ll = get_snr(r_min, a_min, FLOOR(r_len / 2.0), FLOOR(a_len / 2.0), &oval_ll, &npix_ll); /* low-left */
-        lr = get_snr(r_min + FLOOR(r_len / 2.0), a_min, CEIL(r_len / 2.0), FLOOR(a_len / 2.0), &oval_lr, &npix_lr);     /* low-rite */
-        ul = get_snr(r_min, a_min + FLOOR(a_len / 2.0), FLOOR(r_len / 2.0), CEIL(a_len / 2.0), &oval_ul, &npix_ul);     /* up-left */
-        ur = get_snr(r_min + FLOOR(r_len / 2.0), a_min + FLOOR(a_len / 2.0), CEIL(r_len / 2.0), CEIL(a_len / 2.0), &oval_ur, &npix_ur); /* up-rite */
+        ll = get_snr(pp[0], qq[0], dpp, dqq, &oval_ll, &npix_ll); /* low-left */
+        lr = get_snr(pp[1], qq[1], dpp, dqq, &oval_lr, &npix_lr);     /* low-rite */
+        ul = get_snr(pp[2], qq[2], dpp, dqq, &oval_ul, &npix_ul);     /* up-left */
+        ur = get_snr(pp[3], qq[3], dpp, dqq, &oval_ur, &npix_ur); /* up-rite */
 
         /*
          * It is OK to split if sub-cell has no valid pixel; but not all of them.
@@ -443,16 +488,11 @@ void abin_rec(double r_min,
 
     if ((check) && (r_len > GlobalMinRadius) && (a_len > GlobalMinAngle)) {
         /* Enter recursion */
-
-        /* need to use floor() and ceil() because input image may
-           not be square, or 2^n.  This will bias the left-upper image w/ 1 more 
-           pixel per bin; but that's a limit of not using square images.
-           The alternative is only use square smallest sub-image or pad image to 2**N. */
-
-        abin_rec(r_min, a_min, FLOOR(r_len / 2.0), FLOOR(a_len / 2.0)); /* low-left */
-        abin_rec(r_min + FLOOR(r_len / 2.0), a_min, CEIL(r_len / 2.0), FLOOR(a_len / 2.0));     /* low-rite */
-        abin_rec(r_min, a_min + FLOOR(a_len / 2.0), FLOOR(r_len / 2.0), CEIL(a_len / 2.0));     /* up-left */
-        abin_rec(r_min + FLOOR(r_len / 2.0), a_min + FLOOR(a_len / 2.0), CEIL(r_len / 2.0), CEIL(a_len / 2.0)); /* up-rite */
+        
+        abin_rec(pp[0],qq[0],dpp,dqq); /* low-left */
+        abin_rec(pp[1],qq[1],dpp,dqq);     /* low-rite */
+        abin_rec(pp[2],qq[2],dpp,dqq);     /* up-left */
+        abin_rec(pp[3],qq[3],dpp,dqq); /* up-rite */
         return;
     }
 
@@ -643,13 +683,32 @@ int abin(void)
     /* Start Algorithm */
 
 
-    if (GlobalInnerRadius > 0) {
-        fill_region(0, GlobalStartAngle, GlobalInnerRadius,
-                    GlobalStopAngle);
-    }
-    abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
-             GlobalStopAngle);
+    if ( 0 ) {
 
+        if (GlobalInnerRadius > 0) {
+            fill_region(0, GlobalStartAngle, GlobalInnerRadius,
+                        GlobalStopAngle);
+        }
+        abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
+                 GlobalStopAngle);
+    } else {
+        /* For rotbox stuff */
+        double lx, ly;
+        double x0, y0; 
+        double xc, yc;
+        double dx, dy;
+
+        
+        convert_coords( GlobalXdesc, GlobalYdesc, -0.5, -0.5, &x0, &y0 );
+        convert_coords( GlobalXdesc, GlobalYdesc, GlobalXLen+0.5, GlobalYLen+0.5, &lx, &ly );
+        xc = (x0+lx)/2.0;
+        yc = (y0+ly)/2.0;
+        dx = (lx-x0)/2.0;
+        dy = (ly-y0)/2.0;
+        
+        abin_rec( GlobalX0, GlobalY0, 2*dx, 2*dy );
+        
+    }
 
     /* Write out files -- NB: mask file has different datatypes and different extensions */
     dmBlock *outBlock;
