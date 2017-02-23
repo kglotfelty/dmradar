@@ -93,10 +93,26 @@ int convert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xx,
                    double yy, double *xat, double *yat);
 int invert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xat,
                   double yat, double *ii, double *jj);
-regRegion *make_pie(regRegion * inreg, double a_min, double b_min,
+regRegion *make_region(regRegion * inreg, double a_min, double b_min,
                     double a_len, double b_len, long *xs, long *xl,
                     long *ys, long *yl);
 void fill_region(double a_min, double b_min, double a_len, double b_len);
+
+
+/*
+ *  Note:  In the interface, if using polar grid then:
+ * 
+ *     a_min is the starting radius, a_len is the length (so from a_min to a_min+a_len).
+ *     b_min is the starting angle, b_len is the length (so from b_min to b_min_b_len).
+ * 
+ * If using a rectangular grid, then
+ *     a_min is the *middle* of the rectangle x-axis, a_len is the total lenthg (a_min-a_len/2 to a_min+a_len/2)
+ *     b_min is the *middle* of the rectangle y-axis, b_len is the total lenthg (b_min-b_len/2 to b_min+b_len/2)
+ *
+ */
+ 
+
+
 
 /* ----------------------------- */
 
@@ -157,7 +173,7 @@ int invert_coords(dmDescriptor *xdesc,
 
 
 
-regRegion *make_pie(regRegion *inreg, 
+regRegion *make_region(regRegion *inreg, 
                    double a_min, 
                    double b_min,
                    double a_len, 
@@ -255,7 +271,7 @@ double get_snr(double a_min,
     noise = 0.0;
     *area = 0;
 
-    regRegion *reg = make_pie(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_region(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
 
 
     /* Determine SNR for current sub-image */
@@ -324,7 +340,7 @@ void fill_region(double a_min,
     double pixval;
     double px, py;
 
-    regRegion *reg = make_pie(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_region(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
 
     locsnr = get_snr(a_min, b_min, a_len, b_len, &val, &area);
 
@@ -380,7 +396,7 @@ void fill_region(double a_min,
 
 
     /* Add to the global region definition */
-    make_pie(GlobalMaskRegion, a_min, b_min, a_len, b_len, NULL, NULL, NULL, NULL);
+    make_region(GlobalMaskRegion, a_min, b_min, a_len, b_len, NULL, NULL, NULL, NULL);
 
 
     return;
