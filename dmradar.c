@@ -86,17 +86,17 @@ double GlobalMinAngle;          // = 1 ;
 int load_error_image(char *errimg);
 int abin(void);
 
-double get_snr(double r_min, double a_min, double r_len, double a_len,
+double get_snr(double a_min, double b_min, double a_len, double b_len,
                float *oval, long *area);
-void abin_rec(double r_min, double a_min, double r_len, double a_len);
+void abin_rec(double a_min, double b_min, double a_len, double b_len);
 int convert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xx,
                    double yy, double *xat, double *yat);
 int invert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xat,
                   double yat, double *ii, double *jj);
-regRegion *make_pie(regRegion * inreg, double r_min, double a_min,
-                    double r_len, double a_len, long *xs, long *xl,
+regRegion *make_pie(regRegion * inreg, double a_min, double b_min,
+                    double a_len, double b_len, long *xs, long *xl,
                     long *ys, long *yl);
-void fill_region(double r_min, double a_min, double r_len, double a_len);
+void fill_region(double a_min, double b_min, double a_len, double b_len);
 
 /* ----------------------------- */
 
@@ -158,10 +158,10 @@ int invert_coords(dmDescriptor *xdesc,
 
 
 regRegion *make_pie(regRegion *inreg, 
-                   double r_min, 
-                   double a_min,
-                   double r_len, 
-                   double a_len,  
+                   double a_min, 
+                   double b_min,
+                   double a_len, 
+                   double b_len,  
                    long *xs, 
                    long *xl,
                    long *ys, 
@@ -175,19 +175,19 @@ regRegion *make_pie(regRegion *inreg,
     if ( RADAR ) {
         double reg_rad[2];
         double reg_ang[2];
-        reg_rad[0] = r_min;
-        reg_rad[1] = r_min + r_len;
-        reg_ang[0] = a_min;
-        reg_ang[1] = a_min + a_len;
+        reg_rad[0] = a_min;
+        reg_rad[1] = a_min + a_len;
+        reg_ang[0] = b_min;
+        reg_ang[1] = b_min + b_len;
         regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
                        reg_ang, 0, 0);
 
 #if 0
         double r[2];
-        r[0] = r[1] = r_min+r_len;
+        r[0] = r[1] = a_min+a_len;
         regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                        &GlobalStartAngle, 0, 0);
-        r[0] = r[1] = r_min;
+        r[0] = r[1] = a_min;
         regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                        &GlobalStartAngle, 0, 0);
 
@@ -198,8 +198,8 @@ regRegion *make_pie(regRegion *inreg,
 #endif
 
     } else {
-        double ll[2] = { r_len, a_len };
-        regAppendShape(reg, "Rotbox", 1, 1, &r_min, &a_min, 1, ll,
+        double ll[2] = { a_len, b_len };
+        regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
                        &GlobalStartAngle, 0, 0);
     }
 
@@ -230,10 +230,10 @@ regRegion *make_pie(regRegion *inreg,
 
 /* Compute the signal to noise ratio in the sub-image.  Also returns the
  * sum of the pixel values and the area (number of non-null pixels) */
-double get_snr(double r_min, 
-               double a_min, 
-               double r_len, 
+double get_snr(double a_min, 
+               double b_min, 
                double a_len, 
+               double b_len, 
                float *oval,     /* o: sum of pixel values */
                long *area       /* o: number of pixels */
     )
@@ -255,7 +255,7 @@ double get_snr(double r_min,
     noise = 0.0;
     *area = 0;
 
-    regRegion *reg = make_pie(NULL, r_min, a_min, r_len, a_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_pie(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
 
 
     /* Determine SNR for current sub-image */
@@ -303,10 +303,10 @@ double get_snr(double r_min,
 
 
 
-void fill_region(double r_min, 
-                double a_min, 
-                double r_len, 
-                double a_len)
+void fill_region(double a_min, 
+                double b_min, 
+                double a_len, 
+                double b_len)
 {
     long xs;                    /* i: start of x-axis (sub img) */
     long ys;                    /* i: start of y-axis (sub img) */
@@ -324,9 +324,9 @@ void fill_region(double r_min,
     double pixval;
     double px, py;
 
-    regRegion *reg = make_pie(NULL, r_min, a_min, r_len, a_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_pie(NULL, a_min, b_min, a_len, b_len, &xs, &xl, &ys, &yl);
 
-    locsnr = get_snr(r_min, a_min, r_len, a_len, &val, &area);
+    locsnr = get_snr(a_min, b_min, a_len, b_len, &val, &area);
 
     if (0 == area)
         return;
@@ -380,7 +380,7 @@ void fill_region(double r_min,
 
 
     /* Add to the global region definition */
-    make_pie(GlobalMaskRegion, r_min, a_min, r_len, a_len, NULL, NULL, NULL, NULL);
+    make_pie(GlobalMaskRegion, a_min, b_min, a_len, b_len, NULL, NULL, NULL, NULL);
 
 
     return;
@@ -394,36 +394,36 @@ void fill_region(double r_min,
 
 
 /* Recursive binning routine */
-void abin_rec(double r_min, 
-              double a_min,  
-              double r_len, 
-              double a_len)
+void abin_rec(double a_min, 
+              double b_min,  
+              double a_len, 
+              double b_len)
 {
 
     double pp[4], qq[4], dpp, dqq;
-    //    printf("point(%g,%g)\n", r_min, a_min);
+    //    printf("point(%g,%g)\n", a_min, b_min);
 
     if ( RADAR ) {
-        dpp = r_len/2.0;
-        dqq = a_len/2.0;
-        pp[0] = r_min;     qq[0] = a_min;
-        pp[1] = r_min+dpp; qq[1] = a_min;
-        pp[2] = r_min;     qq[2] = a_min+dqq;
-        pp[3] = r_min+dpp; qq[3] = a_min+dqq;        
+        dpp = a_len/2.0;
+        dqq = b_len/2.0;
+        pp[0] = a_min;     qq[0] = b_min;
+        pp[1] = a_min+dpp; qq[1] = b_min;
+        pp[2] = a_min;     qq[2] = b_min+dqq;
+        pp[3] = a_min+dpp; qq[3] = b_min+dqq;        
     } else {
-        dpp = r_len/4.0;
-        dqq = a_len/4.0;
+        dpp = a_len/4.0;
+        dqq = b_len/4.0;
 
         double rot_x, rot_y;
         double rad_ang = GlobalStartAngle*3.141592/180.0;
         double c_a = cos(rad_ang);
         double s_a = sin(rad_ang);
 
-        // rotate r_min,a_min backwards: note cos(a) = cos(-a) and 
+        // rotate a_min,b_min backwards: note cos(a) = cos(-a) and 
         // -sin(a)=sin(-a)
         
-        double r0 =    (r_min-GlobalX0)*c_a + (a_min-GlobalY0)*s_a;
-        double a0 =   -(r_min-GlobalX0)*s_a + (a_min-GlobalY0)*c_a;
+        double r0 =    (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
+        double a0 =   -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
 
         // Lower left -- rotate back
         rot_x = r0-dpp;
@@ -449,8 +449,8 @@ void abin_rec(double r_min,
         pp[3] = rot_x*c_a - rot_y*s_a + GlobalX0;
         qq[3] = rot_x*s_a + rot_y*c_a + GlobalY0;
 
-        dpp = r_len/2.0;
-        dqq = a_len/2.0;
+        dpp = a_len/2.0;
+        dqq = b_len/2.0;
                 
     }
 
@@ -462,7 +462,7 @@ void abin_rec(double r_min,
          * then split it. */
         float at, oval;
         long npix;
-        at = get_snr(r_min, a_min, r_len, a_len, &oval, &npix);
+        at = get_snr(a_min, b_min, a_len, b_len, &oval, &npix);
         check = (at > GlobalSNRThresh);
 
     } else {
@@ -518,7 +518,7 @@ void abin_rec(double r_min,
     }                           // end else 
 
 
-    if ((check) && (r_len > GlobalMinRadius) && (a_len > GlobalMinAngle)) {
+    if ((check) && (a_len > GlobalMinRadius) && (b_len > GlobalMinAngle)) {
         /* Enter recursion */
         
         abin_rec(pp[0],qq[0],dpp,dqq); /* low-left */
@@ -528,7 +528,7 @@ void abin_rec(double r_min,
         return;
     }
 
-    fill_region(r_min, a_min, r_len, a_len);
+    fill_region(a_min, b_min, a_len, b_len);
 
 }
 
