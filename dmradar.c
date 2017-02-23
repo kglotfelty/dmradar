@@ -93,8 +93,8 @@ int convert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xx,
                    double yy, double *xat, double *yat);
 int invert_coords(dmDescriptor * xdesc, dmDescriptor * ydesc, double xat,
                   double yat, double *ii, double *jj);
-regRegion *make_pie(regRegion * inreg, double r_min, double r_len,
-                    double a_min, double a_len, long *xs, long *xl,
+regRegion *make_pie(regRegion * inreg, double r_min, double a_min,
+                    double r_len, double a_len, long *xs, long *xl,
                     long *ys, long *yl);
 void fill_region(double r_min, double a_min, double r_len, double a_len);
 
@@ -159,8 +159,8 @@ int invert_coords(dmDescriptor *xdesc,
 
 regRegion *make_pie(regRegion *inreg, 
                    double r_min, 
-                   double r_len,
-                   double a_min, 
+                   double a_min,
+                   double r_len, 
                    double a_len,  
                    long *xs, 
                    long *xl,
@@ -198,8 +198,6 @@ regRegion *make_pie(regRegion *inreg,
 #endif
 
     } else {
-        //double xx = r_min + r_len / 2.0;
-        //double yy = a_min + a_len / 2.0;
         double ll[2] = { r_len, a_len };
         regAppendShape(reg, "Rotbox", 1, 1, &r_min, &a_min, 1, ll,
                        &GlobalStartAngle, 0, 0);
@@ -257,7 +255,7 @@ double get_snr(double r_min,
     noise = 0.0;
     *area = 0;
 
-    regRegion *reg = make_pie(NULL, r_min, r_len, a_min, a_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_pie(NULL, r_min, a_min, r_len, a_len, &xs, &xl, &ys, &yl);
 
 
     /* Determine SNR for current sub-image */
@@ -326,7 +324,7 @@ void fill_region(double r_min,
     double pixval;
     double px, py;
 
-    regRegion *reg = make_pie(NULL, r_min, r_len, a_min, a_len, &xs, &xl, &ys, &yl);
+    regRegion *reg = make_pie(NULL, r_min, a_min, r_len, a_len, &xs, &xl, &ys, &yl);
 
     locsnr = get_snr(r_min, a_min, r_len, a_len, &val, &area);
 
@@ -382,12 +380,15 @@ void fill_region(double r_min,
 
 
     /* Add to the global region definition */
-    make_pie(GlobalMaskRegion, r_min, r_len, a_min, a_len, NULL, NULL, NULL, NULL);
+    make_pie(GlobalMaskRegion, r_min, a_min, r_len, a_len, NULL, NULL, NULL, NULL);
 
 
     return;
 
 }
+
+
+
 
 
 
