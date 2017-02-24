@@ -219,34 +219,34 @@ do
     ### FIXME!!!! replace LOCAL_INPUT with $INDIR
     ### FIXME!!!! replace LOCAL_SAVE with $SAVDIR
     
-    new_zero )   test1_string="dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_zero )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
             ;;
             
-    new_one )   test1_string="dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_one )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
             ;;
             
-    new_two )   test1_string="dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_two )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
             
-    new_three )   test1_string="dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_three )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
             
-    new_four )   test1_string="dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_four )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
             
-    new_rotated)   test1_string="dmradar  infile=LOCAL_INPUT/img+rot.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_rotated)   test1_string="./dmradar  infile=LOCAL_INPUT/img+rot.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
             ;;
 
-    new_with_subspace )   test1_string="dmradar  infile=LOCAL_INPUT/img+rot+dss.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_with_subspace )   test1_string="./dmradar  infile=LOCAL_INPUT/img+rot+dss.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
