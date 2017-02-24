@@ -111,6 +111,12 @@ void fill_region(double a_min, double b_min, double a_len, double b_len);
  *
  */
  
+int make_pie( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
+int make_epanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
+int make_bpanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
+
+
+int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
 
 
 
@@ -169,7 +175,86 @@ int invert_coords(dmDescriptor *xdesc,
     return (0);
 }
 
+/* ---------------------------------------------- */
 
+
+int make_pie( regRegion *reg, 
+               double a_min, 
+               double b_min,
+               double a_len, 
+               double b_len
+               )
+{
+    double reg_rad[2];
+    double reg_ang[2];
+    reg_rad[0] = a_min;
+    reg_rad[1] = a_min + a_len;
+    reg_ang[0] = b_min;
+    reg_ang[1] = b_min + b_len;
+    regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
+                   reg_ang, 0, 0);
+
+    return(0);
+}
+
+
+int make_epanda( regRegion *reg, 
+               double a_min, 
+               double b_min,
+               double a_len, 
+               double b_len
+               )
+{
+
+    double reg_ang[2];
+    reg_ang[0] = b_min;
+    reg_ang[1] = b_min + b_len;
+
+    double r[2];
+    r[0] = a_min+a_len;
+    r[1] = r[0];
+    regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
+                   &GlobalStartAngle, 0, 0);
+    r[0] = a_min;
+    r[1] = r[0];
+    regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
+                   &GlobalStartAngle, 0, 0);
+
+    regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
+                   reg_ang, 0, 0);
+
+
+    return(0);
+}
+
+
+int make_bpanda( regRegion *reg, 
+               double a_min, 
+               double b_min,
+               double a_len, 
+               double b_len
+               )
+{
+    double reg_ang[2];
+    reg_ang[0] = b_min;
+    reg_ang[1] = b_min + b_len;
+
+    double r[2];
+    r[0] = a_min+a_len;
+    r[1] = r[0];
+    regAppendShape(reg, "rotbox", 1, 1, &GlobalX0, &GlobalY0, 1, r,
+                   &GlobalStartAngle, 0, 0);
+    r[0] = a_min;
+    r[1] = r[0];
+    regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
+                   &GlobalStartAngle, 0, 0);
+
+    regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
+                   reg_ang, 0, 0);
+
+
+    return(0);
+}
 
 
 
@@ -189,29 +274,9 @@ regRegion *make_region(regRegion *inreg,
     reg = inreg ? inreg : regCreateEmptyRegion();
 
     if ( RADAR ) {
-        double reg_rad[2];
-        double reg_ang[2];
-        reg_rad[0] = a_min;
-        reg_rad[1] = a_min + a_len;
-        reg_ang[0] = b_min;
-        reg_ang[1] = b_min + b_len;
-        regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
-                       reg_ang, 0, 0);
 
-#if 0
-        double r[2];
-        r[0] = r[1] = a_min+a_len;
-        regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
-                       &GlobalStartAngle, 0, 0);
-        r[0] = r[1] = a_min;
-        regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
-                       &GlobalStartAngle, 0, 0);
+        GlobalShapeFunction( reg, a_min, b_min, a_len, b_len );
 
-        regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
-                       reg_ang, 0, 0);
-
-        //regPrintRegion(reg);
-#endif
 
     } else {
         double ll[2] = { a_len, b_len };
@@ -732,6 +797,9 @@ int abin(void)
 
 
     if ( RADAR ) {
+
+        GlobalShapeFunction = make_bpanda;
+
 
         if (GlobalInnerRadius > 0) {
             fill_region(0, GlobalStartAngle, GlobalInnerRadius,
