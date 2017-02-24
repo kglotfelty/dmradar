@@ -66,6 +66,8 @@ double GlobalStopAngle;         // = 360.0;
 double GlobalMinRadius;         // = 0.5;
 double GlobalMinAngle;          // = 1 ;
 
+double GlobalEllipticity;
+
 
 
 
@@ -114,10 +116,16 @@ void fill_region(double a_min, double b_min, double a_len, double b_len);
 int make_pie( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_epanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_bpanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
+int make_rotbox( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
+
+
+void polar_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
+void cartesian_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
+
 
 
 int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
-
+void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, double p[4], double q[4]) = NULL;
 
 
 /* ----------------------------- */
@@ -212,11 +220,11 @@ int make_epanda( regRegion *reg,
 
     double r[2];
     r[0] = a_min+a_len;
-    r[1] = r[0];
+    r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
     r[0] = a_min;
-    r[1] = r[0];
+    r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
 
@@ -241,11 +249,11 @@ int make_bpanda( regRegion *reg,
 
     double r[2];
     r[0] = a_min+a_len;
-    r[1] = r[0];
+    r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
     r[0] = a_min;
-    r[1] = r[0];
+    r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
 
@@ -255,6 +263,22 @@ int make_bpanda( regRegion *reg,
 
     return(0);
 }
+
+
+int make_rotbox( regRegion *reg, 
+               double a_min, 
+               double b_min,
+               double a_len, 
+               double b_len
+               )
+{
+
+    double ll[2] = { a_len, b_len };
+    regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
+                   &GlobalStartAngle, 0, 0);
+    return(0);
+}
+
 
 
 
@@ -273,16 +297,7 @@ regRegion *make_region(regRegion *inreg,
     regRegion *reg;
     reg = inreg ? inreg : regCreateEmptyRegion();
 
-    if ( RADAR ) {
-
-        GlobalShapeFunction( reg, a_min, b_min, a_len, b_len );
-
-
-    } else {
-        double ll[2] = { a_len, b_len };
-        regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
-                       &GlobalStartAngle, 0, 0);
-    }
+    GlobalShapeFunction( reg, a_min, b_min, a_len, b_len );
 
 
     if (xs && ys && xl && yl) {
@@ -469,9 +484,72 @@ void fill_region(double a_min,
 }
 
 
+void polar_limits( double a_min, 
+              double b_min,  
+              double a_len, 
+              double b_len,
+              double pp[4],
+              double qq[4] )
+{
+    double dpp;
+    double dqq;
+    dpp = a_len/2.0;
+    dqq = b_len/2.0;
+    pp[0] = a_min;     qq[0] = b_min;
+    pp[1] = a_min+dpp; qq[1] = b_min;
+    pp[2] = a_min;     qq[2] = b_min+dqq;
+    pp[3] = a_min+dpp; qq[3] = b_min+dqq;        
+}
 
 
+void cartesian_limits( double a_min, 
+              double b_min,  
+              double a_len, 
+              double b_len,
+              double pp[4],
+              double qq[4] )
+{
+    double dpp;
+    double dqq;
+    dpp = a_len/4.0;
+    dqq = b_len/4.0;
 
+    double rot_x, rot_y;
+    double rad_ang = GlobalStartAngle*3.141592/180.0;
+    double c_a = cos(rad_ang);
+    double s_a = sin(rad_ang);
+
+    // rotate a_min,b_min backwards: note cos(a) = cos(-a) and 
+    // -sin(a)=sin(-a)
+    
+    double r0 =    (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
+    double a0 =   -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
+
+    // Lower left -- rotate back
+    rot_x = r0-dpp;
+    rot_y = a0-dqq;
+    pp[0] = rot_x*c_a - rot_y*s_a + GlobalX0;
+    qq[0] = rot_x*s_a + rot_y*c_a + GlobalY0;
+    
+    // Lower right -- rotate back
+    rot_x = r0+dpp;
+    rot_y = a0-dqq;
+    pp[1] = rot_x*c_a - rot_y*s_a + GlobalX0;
+    qq[1] = rot_x*s_a + rot_y*c_a + GlobalY0;
+
+    // upper left -- rotate back
+    rot_x = r0-dpp;
+    rot_y = a0+dqq;
+    pp[2] = rot_x*c_a - rot_y*s_a + GlobalX0;
+    qq[2] = rot_x*s_a + rot_y*c_a + GlobalY0;
+
+    // upper right -- rotate back
+    rot_x = r0+dpp;
+    rot_y = a0+dqq;
+    pp[3] = rot_x*c_a - rot_y*s_a + GlobalX0;
+    qq[3] = rot_x*s_a + rot_y*c_a + GlobalY0;
+
+}
 
 
 /* Recursive binning routine */
@@ -482,59 +560,11 @@ void abin_rec(double a_min,
 {
 
     double pp[4], qq[4], dpp, dqq;
-    //    printf("point(%g,%g)\n", a_min, b_min);
 
-    if ( RADAR ) {
-        dpp = a_len/2.0;
-        dqq = b_len/2.0;
-        pp[0] = a_min;     qq[0] = b_min;
-        pp[1] = a_min+dpp; qq[1] = b_min;
-        pp[2] = a_min;     qq[2] = b_min+dqq;
-        pp[3] = a_min+dpp; qq[3] = b_min+dqq;        
-    } else {
-        dpp = a_len/4.0;
-        dqq = b_len/4.0;
+    GlobalLimitsFunction( a_min, b_min, a_len, b_len, pp, qq );
 
-        double rot_x, rot_y;
-        double rad_ang = GlobalStartAngle*3.141592/180.0;
-        double c_a = cos(rad_ang);
-        double s_a = sin(rad_ang);
-
-        // rotate a_min,b_min backwards: note cos(a) = cos(-a) and 
-        // -sin(a)=sin(-a)
-        
-        double r0 =    (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
-        double a0 =   -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
-
-        // Lower left -- rotate back
-        rot_x = r0-dpp;
-        rot_y = a0-dqq;
-        pp[0] = rot_x*c_a - rot_y*s_a + GlobalX0;
-        qq[0] = rot_x*s_a + rot_y*c_a + GlobalY0;
-        
-        // Lower right -- rotate back
-        rot_x = r0+dpp;
-        rot_y = a0-dqq;
-        pp[1] = rot_x*c_a - rot_y*s_a + GlobalX0;
-        qq[1] = rot_x*s_a + rot_y*c_a + GlobalY0;
-
-        // upper left -- rotate back
-        rot_x = r0-dpp;
-        rot_y = a0+dqq;
-        pp[2] = rot_x*c_a - rot_y*s_a + GlobalX0;
-        qq[2] = rot_x*s_a + rot_y*c_a + GlobalY0;
-
-        // upper right -- rotate back
-        rot_x = r0+dpp;
-        rot_y = a0+dqq;
-        pp[3] = rot_x*c_a - rot_y*s_a + GlobalX0;
-        qq[3] = rot_x*s_a + rot_y*c_a + GlobalY0;
-
-        dpp = a_len/2.0;
-        dqq = b_len/2.0;
-                
-    }
-
+    dpp = a_len/2.0;
+    dqq = b_len/2.0;
 
 
     short check = 0;
@@ -561,8 +591,8 @@ void abin_rec(double a_min,
         short ill, ilr, iul, iur;
 
         ll = get_snr(pp[0], qq[0], dpp, dqq, &oval_ll, &npix_ll); /* low-left */
-        lr = get_snr(pp[1], qq[1], dpp, dqq, &oval_lr, &npix_lr);     /* low-rite */
-        ul = get_snr(pp[2], qq[2], dpp, dqq, &oval_ul, &npix_ul);     /* up-left */
+        lr = get_snr(pp[1], qq[1], dpp, dqq, &oval_lr, &npix_lr); /* low-rite */
+        ul = get_snr(pp[2], qq[2], dpp, dqq, &oval_ul, &npix_ul); /* up-left */
         ur = get_snr(pp[3], qq[3], dpp, dqq, &oval_ur, &npix_ur); /* up-rite */
 
         /*
@@ -707,6 +737,10 @@ int abin(void)
     GlobalMinRadius = clgetd("minradius");
     GlobalMinAngle = clgetd("minangle");
 
+    GlobalEllipticity = 0.8;
+    GlobalShapeFunction = make_pie ; //
+    GlobalLimitsFunction = polar_limits;
+
 
     clgetstr("inerrfile", errimg, DS_SZ_FNAME);
     clgetstr("outmaskfile", maskfile, DS_SZ_FNAME);
@@ -745,8 +779,6 @@ int abin(void)
 
 
     /* Read the data */
-    /* TODO: Replace with dmimgio routines */
-
     inBlock = dmImageOpen(infile);
     if (!inBlock) {
         err_msg("ERROR: Could not open infile='%s'\n", infile);
@@ -760,12 +792,10 @@ int abin(void)
     long null;
     short has_null;
 
-    GlobalDataType =
-        get_image_data(inBlock, &GlobalData, &lAxes, &dss, &null,
+    GlobalDataType = get_image_data(inBlock, &GlobalData, &lAxes, &dss, &null,
                        &has_null);
     get_image_wcs(inBlock, &GlobalXdesc, &GlobalYdesc);
-    GlobalPixMask =
-        get_image_mask(inBlock, GlobalData, GlobalDataType, lAxes, dss,
+    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, lAxes, dss,
                        null, has_null, GlobalXdesc, GlobalYdesc);
 
 
@@ -781,13 +811,18 @@ int abin(void)
 
 
     /* Allocate memory for the products */
-    //GlobalData = (float*)calloc(npix,sizeof(float));
-    GlobalDErr = (float *) calloc(npix, sizeof(float));
-    GlobalOutData = (float *) calloc(npix, sizeof(float));
-    GlobalOutArea = (float *) calloc(npix, sizeof(float));
-    GlobalOutSNR = (float *) calloc(npix, sizeof(float));
-    GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long));
-    GlobalMaskRegion = regCreateEmptyRegion();
+
+    if (( NULL == (GlobalDErr = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutData = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutArea = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutSNR = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long)))) ||
+        ( NULL == (GlobalMaskRegion = regCreateEmptyRegion())) ) {
+        err_msg("ERROR: Problem allocating memory");
+        return(-34);            
+    }
+
+
 
     if (0 != load_error_image(errimg)) {
         return -1;
@@ -798,9 +833,6 @@ int abin(void)
 
     if ( RADAR ) {
 
-        GlobalShapeFunction = make_bpanda;
-
-
         if (GlobalInnerRadius > 0) {
             fill_region(0, GlobalStartAngle, GlobalInnerRadius,
                         GlobalStopAngle);
@@ -808,22 +840,8 @@ int abin(void)
         abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
                  GlobalStopAngle);
     } else {
-        /* For rotbox stuff */
-        double lx, ly;
-        double x0, y0; 
-        double xc, yc;
-        double dx, dy;
 
-        
-        convert_coords( GlobalXdesc, GlobalYdesc, -0.5, -0.5, &x0, &y0 );
-        convert_coords( GlobalXdesc, GlobalYdesc, GlobalXLen+0.5, GlobalYLen+0.5, &lx, &ly );
-        xc = (x0+lx)/2.0;
-        yc = (y0+ly)/2.0;
-        dx = (lx-x0)/2.0;
-        dy = (ly-y0)/2.0;
-        
-        abin_rec( GlobalX0, GlobalY0, 2*dx, 2*dy );
-        
+        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);        
     }
 
     /* Write out files -- NB: mask file has different datatypes and different extensions */
