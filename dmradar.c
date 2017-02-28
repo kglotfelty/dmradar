@@ -48,7 +48,7 @@ float *GlobalOutSNR;            /* o: output SNR */
 unsigned long *GlobalMask;      /* o: output mask */
 long GlobalXLen;                /* i: length of x-axis (full img) */
 long GlobalYLen;                /* i: length of y-axis (full img) */
-long GlobalLAxes[2];            /* X,Y lens togeether */
+long *GlobalLAxes;            /* X,Y lens togeether */
 float GlobalSNRThresh;          /* i: SNR threshold */
 enum { ZERO_ABOVE = 0, ONE_ABOVE, TWO_ABOVE, THREE_ABOVE, ALL_ABOVE } GlobalSplitCriteria;
 dmDataType GlobalDataType;
@@ -65,8 +65,10 @@ double GlobalStartAngle;        // = 0.0;
 double GlobalStopAngle;         // = 360.0;
 double GlobalMinRadius;         // = 0.5;
 double GlobalMinAngle;          // = 1 ;
-
 double GlobalEllipticity;
+int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
+void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, double p[4], double q[4]) = NULL;
+#define RADAR 1
 
 
 
@@ -77,10 +79,6 @@ double GlobalEllipticity;
  * more easily
  */
 #include "dmimgio.h"
-
-
-
-#define RADAR 1
 
 
 /* ------Prototypes ----------------------- */
@@ -99,6 +97,8 @@ regRegion *make_region(regRegion * inreg, double a_min, double b_min,
                     double a_len, double b_len, long *xs, long *xl,
                     long *ys, long *yl);
 void fill_region(double a_min, double b_min, double a_len, double b_len);
+int write_output(dmBlock *inBlock, char *outfile, void *outdata, 
+        short clobber, dmDataType dt, regRegion *outreg);
 
 
 /*
@@ -117,15 +117,11 @@ int make_pie( regRegion *reg, double a_min, double b_min, double a_len, double b
 int make_epanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_bpanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_rotbox( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
-
-
 void polar_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
 void cartesian_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
 
 
 
-int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
-void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, double p[4], double q[4]) = NULL;
 
 
 /* ----------------------------- */
@@ -703,6 +699,52 @@ int load_error_image(char *errimg)
 }
 
 
+int write_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, dmDataType dt, 
+    regRegion *outreg)
+{
+    dmBlock *outBlock;
+    dmDescriptor *outDes;
+
+    if ((strlen(outfile) == 0) || (ds_strcmp_cis(outfile, "none") == 0)) {
+        return(0);
+    }
+
+    if (ds_clobber(outfile, clobber, NULL) != 0) {
+        return(1);
+    }
+
+    outBlock = dmImageCreate(outfile, dt, GlobalLAxes, 2);
+    if (outBlock == NULL) {
+        err_msg("ERROR: Could not create output '%s'\n", outfile);
+    }
+    outDes = dmImageGetDataDescriptor(outBlock);
+    dmBlockCopy(inBlock, outBlock, "HEADER");
+    ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
+    put_param_hist_info(outBlock, "dmradar", NULL, 0);
+    dmBlockCopyWCS(inBlock, outBlock);
+
+    if ( dmFLOAT == dt )  {
+        dmSetArray_f(outDes, (float*)outdata, GlobalLAxes[0]*GlobalLAxes[1]);
+    } else if (dmULONG == dt ) {
+        dmSetArray_ul(outDes, (unsigned long*)outdata, GlobalLAxes[0]*GlobalLAxes[1]);
+    } else {
+        return(-1);
+    }
+
+    if ( outreg ) {
+        dmBlockClose(dmTableWriteRegion(dmBlockGetDataset(outBlock),
+                                        "REGION", NULL, outreg));
+    }
+
+    dmImageClose(outBlock);
+
+    return(0);
+    
+}
+
+
+
+
 
 /* Main routine; does all the work of a quad-tree adaptive binning routine*/
 int abin(void)
@@ -710,13 +752,13 @@ int abin(void)
 
     char infile[DS_SZ_FNAME];
     char errimg[DS_SZ_FNAME];
-
     char outfile[DS_SZ_FNAME];
     char areafile[DS_SZ_FNAME];
     char maskfile[DS_SZ_FNAME];
     char snrfile[DS_SZ_FNAME];
     short method;
     short clobber;
+
 
     long npix;
 
@@ -737,10 +779,9 @@ int abin(void)
     GlobalMinRadius = clgetd("minradius");
     GlobalMinAngle = clgetd("minangle");
 
-    GlobalEllipticity = 0.8;
-    GlobalShapeFunction = make_pie ; //
+    GlobalEllipticity = 1.0;
+    GlobalShapeFunction = make_pie;
     GlobalLimitsFunction = polar_limits;
-
 
     clgetstr("inerrfile", errimg, DS_SZ_FNAME);
     clgetstr("outmaskfile", maskfile, DS_SZ_FNAME);
@@ -749,21 +790,11 @@ int abin(void)
     clobber = clgetb("clobber");
 
     switch (method) {
-    case 0:
-        GlobalSplitCriteria = ZERO_ABOVE;
-        break;
-    case 1:
-        GlobalSplitCriteria = ONE_ABOVE;
-        break;
-    case 2:
-        GlobalSplitCriteria = TWO_ABOVE;
-        break;
-    case 3:
-        GlobalSplitCriteria = THREE_ABOVE;
-        break;
-    case 4:
-        GlobalSplitCriteria = ALL_ABOVE;
-        break;
+    case 0:  GlobalSplitCriteria = ZERO_ABOVE;   break;
+    case 1:  GlobalSplitCriteria = ONE_ABOVE;    break;
+    case 2:  GlobalSplitCriteria = TWO_ABOVE;    break;
+    case 3:  GlobalSplitCriteria = THREE_ABOVE;  break;
+    case 4:  GlobalSplitCriteria = ALL_ABOVE;    break;
     default:
         err_msg("Invalid method parameter value");
         return (-1);
@@ -785,33 +816,26 @@ int abin(void)
         return (-1);
     }
 
-
-
-    long *lAxes = NULL;
+   // long *lAxes = NULL;
     regRegion *dss = NULL;
     long null;
     short has_null;
 
-    GlobalDataType = get_image_data(inBlock, &GlobalData, &lAxes, &dss, &null,
+    GlobalDataType = get_image_data(inBlock, &GlobalData, &GlobalLAxes, &dss, &null,
                        &has_null);
     get_image_wcs(inBlock, &GlobalXdesc, &GlobalYdesc);
-    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, lAxes, dss,
+    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, GlobalLAxes, dss,
                        null, has_null, GlobalXdesc, GlobalYdesc);
-
-
-    npix = (lAxes[0] * lAxes[1]);
+    npix = (GlobalLAxes[0] * GlobalLAxes[1]);
     if (npix == 0) {
         err_msg("ERROR: Image is empty (one axis is 0 length)\n");
         return (-1);
     }
-
-
-    GlobalLAxes[0] = GlobalXLen = lAxes[0];
-    GlobalLAxes[1] = GlobalYLen = lAxes[1];
+    GlobalXLen = GlobalLAxes[0];
+    GlobalYLen = GlobalLAxes[1];
 
 
     /* Allocate memory for the products */
-
     if (( NULL == (GlobalDErr = (float *) calloc(npix, sizeof(float)))) ||
         ( NULL == (GlobalOutData = (float *) calloc(npix, sizeof(float)))) ||
         ( NULL == (GlobalOutArea = (float *) calloc(npix, sizeof(float)))) ||
@@ -823,13 +847,11 @@ int abin(void)
     }
 
 
-
     if (0 != load_error_image(errimg)) {
         return -1;
     }
 
     /* Start Algorithm */
-
 
     if ( RADAR ) {
 
@@ -845,83 +867,10 @@ int abin(void)
     }
 
     /* Write out files -- NB: mask file has different datatypes and different extensions */
-    dmBlock *outBlock;
-    dmDescriptor *outDes;
-
-    if (ds_clobber(outfile, clobber, NULL) == 0) {
-        outBlock = dmImageCreate(outfile, dmFLOAT, lAxes, 2);
-        if (outBlock == NULL) {
-            err_msg("ERROR: Could not create output '%s'\n", outfile);
-        }
-        outDes = dmImageGetDataDescriptor(outBlock);
-        dmBlockCopy(inBlock, outBlock, "HEADER");
-        ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
-        put_param_hist_info(outBlock, "dmradar", NULL, 0);
-        dmBlockCopyWCS(inBlock, outBlock);
-        dmSetArray_f(outDes, GlobalOutData, npix);
-        dmImageClose(outBlock);
-    } else {
-        return (-1);
-    }
-
-    if ((strlen(areafile) > 0) && (ds_strcmp_cis(areafile, "none") != 0)) {
-        if (ds_clobber(areafile, clobber, NULL) == 0) {
-            outBlock = dmImageCreate(areafile, dmFLOAT, lAxes, 2);
-            if (outBlock == NULL) {
-                err_msg("ERROR: Could not create output '%s'\n", areafile);
-            }
-            outDes = dmImageGetDataDescriptor(outBlock);
-            dmBlockCopy(inBlock, outBlock, "HEADER");
-            ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
-            put_param_hist_info(outBlock, "dmradar", NULL, 0);
-            dmBlockCopyWCS(inBlock, outBlock);
-            dmSetArray_f(outDes, GlobalOutArea, npix);
-            dmImageClose(outBlock);
-        } else {
-            return (-1);
-        }
-    }
-
-    if ((strlen(snrfile) > 0) && (ds_strcmp_cis(snrfile, "none") != 0)) {
-        if (ds_clobber(snrfile, clobber, NULL) == 0) {
-            outBlock = dmImageCreate(snrfile, dmFLOAT, lAxes, 2);
-            if (outBlock == NULL) {
-                err_msg("ERROR: Could not create output '%s'\n", snrfile);
-            }
-            outDes = dmImageGetDataDescriptor(outBlock);
-            dmBlockCopy(inBlock, outBlock, "HEADER");
-            ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
-            put_param_hist_info(outBlock, "dmradar", NULL, 0);
-            dmBlockCopyWCS(inBlock, outBlock);
-            dmSetArray_f(outDes, GlobalOutSNR, npix);
-            dmImageClose(outBlock);
-        } else {
-            return (-1);
-        }
-    }
-
-
-    if ((strlen(maskfile) > 0) && (ds_strcmp_cis(maskfile, "none") != 0)) {
-        if (ds_clobber(maskfile, clobber, NULL) == 0) {
-            outBlock = dmImageCreate(maskfile, dmULONG, lAxes, 2);
-            if (outBlock == NULL) {
-                err_msg("ERROR: Could not create output '%s'\n", maskfile);
-            }
-            outDes = dmImageGetDataDescriptor(outBlock);
-            dmBlockCopy(inBlock, outBlock, "HEADER");
-            ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
-            put_param_hist_info(outBlock, "dmradar", NULL, 0);
-            dmBlockCopyWCS(inBlock, outBlock);
-            dmSetArray_ul(outDes, GlobalMask, npix);
-
-            dmBlockClose(dmTableWriteRegion(dmBlockGetDataset(outBlock),
-                                            "REGION", NULL, GlobalMaskRegion));
-
-            dmImageClose(outBlock);
-        } else {
-            return (-1);
-        }
-    }
+    write_output( inBlock, outfile, GlobalOutData, clobber, dmFLOAT, NULL );
+    write_output( inBlock, areafile, GlobalOutArea, clobber, dmFLOAT, NULL );
+    write_output( inBlock, snrfile, GlobalOutSNR, clobber, dmFLOAT, NULL );
+    write_output( inBlock, maskfile, GlobalMask, clobber, dmULONG, GlobalMaskRegion);
 
     /* Must keep open until now to do all the wcs/hdr copies */
     dmImageClose(inBlock);
