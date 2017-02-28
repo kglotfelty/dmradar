@@ -71,7 +71,16 @@ void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, do
 #define RADAR 1
 
 
-
+typedef struct {
+    char infile[DS_SZ_FNAME];
+    char errimg[DS_SZ_FNAME];
+    char outfile[DS_SZ_FNAME];
+    char areafile[DS_SZ_FNAME];
+    char maskfile[DS_SZ_FNAME];
+    char snrfile[DS_SZ_FNAME];
+    short method;
+    short clobber;
+} Parameters;
 
 
 /* Using the dmtools/dmimgio routines removes lots of duplicate code that was
@@ -97,8 +106,17 @@ regRegion *make_region(regRegion * inreg, double a_min, double b_min,
                     double a_len, double b_len, long *xs, long *xl,
                     long *ys, long *yl);
 void fill_region(double a_min, double b_min, double a_len, double b_len);
-int write_output(dmBlock *inBlock, char *outfile, void *outdata, 
+int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, 
         short clobber, dmDataType dt, regRegion *outreg);
+int write_outputs( dmBlock *inBlock, Parameters *pp);
+
+dmBlock *load_infile( char *infile);
+int allocate_memory(void);
+int autoname( Parameters *pp );
+int map_method( short method ) ;
+void free_globals(void);
+
+Parameters *load_parameters(void);
 
 
 /*
@@ -699,7 +717,7 @@ int load_error_image(char *errimg)
 }
 
 
-int write_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, dmDataType dt, 
+int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, dmDataType dt, 
     regRegion *outreg)
 {
     dmBlock *outBlock;
@@ -744,50 +762,82 @@ int write_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, 
 
 
 
-
-
-/* Main routine; does all the work of a quad-tree adaptive binning routine*/
-int abin(void)
+dmBlock *load_infile( char *infile)
 {
-
-    char infile[DS_SZ_FNAME];
-    char errimg[DS_SZ_FNAME];
-    char outfile[DS_SZ_FNAME];
-    char areafile[DS_SZ_FNAME];
-    char maskfile[DS_SZ_FNAME];
-    char snrfile[DS_SZ_FNAME];
-    short method;
-    short clobber;
-
-
-    long npix;
-
+    /* Read the data */
     dmBlock *inBlock;
+ 
+    inBlock = dmImageOpen(infile);
+    if (!inBlock) {
+        err_msg("ERROR: Could not open infile='%s'\n", infile);
+        return (NULL);
+    }
 
-    /* Read in all the data */
-    clgetstr("infile", infile, DS_SZ_FNAME);
-    clgetstr("outfile", outfile, DS_SZ_FNAME);
-    GlobalSNRThresh = clgetd("snr");
-    GlobalX0 = clgetd("xcenter");
-    GlobalY0 = clgetd("ycenter");
-    method = clgeti("method");
+    regRegion *dss = NULL;
+    long null;
+    short has_null;
+    GlobalDataType = get_image_data(inBlock, &GlobalData, &GlobalLAxes, &dss, &null,
+                       &has_null);
+    get_image_wcs(inBlock, &GlobalXdesc, &GlobalYdesc);
+    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, GlobalLAxes, dss,
+                       null, has_null, GlobalXdesc, GlobalYdesc);
+    GlobalXLen = GlobalLAxes[0];
+    GlobalYLen = GlobalLAxes[1];
 
-    GlobalInnerRadius = clgetd("rstart");
-    GlobalOuterRadius = clgetd("rstop");
-    GlobalStartAngle = clgetd("astart");
-    GlobalStopAngle = clgetd("astop");
-    GlobalMinRadius = clgetd("minradius");
-    GlobalMinAngle = clgetd("minangle");
+    return(inBlock);    
+}
 
-    GlobalEllipticity = 1.0;
-    GlobalShapeFunction = make_pie;
-    GlobalLimitsFunction = polar_limits;
 
-    clgetstr("inerrfile", errimg, DS_SZ_FNAME);
-    clgetstr("outmaskfile", maskfile, DS_SZ_FNAME);
-    clgetstr("outsnrfile", snrfile, DS_SZ_FNAME);
-    clgetstr("outareafile", areafile, DS_SZ_FNAME);
-    clobber = clgetb("clobber");
+int allocate_memory(void)
+{
+    long npix;
+    npix = (GlobalLAxes[0] * GlobalLAxes[1]);
+    if (npix == 0) {
+        err_msg("ERROR: Image is empty (one axis is 0 length)\n");
+        return (-1);
+    }
+
+    /* Allocate memory for the products */
+    if (( NULL == (GlobalDErr = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutData = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutArea = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalOutSNR = (float *) calloc(npix, sizeof(float)))) ||
+        ( NULL == (GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long)))) ||
+        ( NULL == (GlobalMaskRegion = regCreateEmptyRegion())) ) {
+        err_msg("ERROR: Problem allocating memory");
+        return(-34);            
+    }
+    
+    return(0);
+}
+
+
+int autoname( Parameters *pp)
+{
+    long maxlen = DS_SZ_FNAME;
+
+    if ( 0 == strlen(pp->infile)) {
+        err_msg("ERROR: infile cannot be blank");
+        return(-1);
+    }
+
+    /* Go ahead and take care of the autonaming */
+    ds_autoname(pp->infile, pp->outfile, "abinimg", maxlen);
+
+    if ( (0 == strlen(pp->outfile)) || ( 0 == ds_strcmp_cis(pp->outfile, "none"))) {
+        err_msg("ERROR: outfile cannot be blank");
+        return(-2);
+    }
+
+    ds_autoname(pp->outfile, pp->maskfile, "maskimg", maxlen);
+    ds_autoname(pp->outfile, pp->snrfile, "snrimg", maxlen);
+    ds_autoname(pp->outfile, pp->areafile, "areaimg", maxlen);
+
+    return(0);
+}
+
+int map_method( short method ) 
+{
 
     switch (method) {
     case 0:  GlobalSplitCriteria = ZERO_ABOVE;   break;
@@ -800,81 +850,12 @@ int abin(void)
         return (-1);
         break;
     };
+    return(0);
+}
 
 
-    /* Go ahead and take care of the autonaming */
-    ds_autoname(infile, outfile, "abinimg", DS_SZ_FNAME);
-    ds_autoname(outfile, maskfile, "maskimg", DS_SZ_FNAME);
-    ds_autoname(outfile, snrfile, "snrimg", DS_SZ_FNAME);
-    ds_autoname(outfile, areafile, "areaimg", DS_SZ_FNAME);
-
-
-    /* Read the data */
-    inBlock = dmImageOpen(infile);
-    if (!inBlock) {
-        err_msg("ERROR: Could not open infile='%s'\n", infile);
-        return (-1);
-    }
-
-   // long *lAxes = NULL;
-    regRegion *dss = NULL;
-    long null;
-    short has_null;
-
-    GlobalDataType = get_image_data(inBlock, &GlobalData, &GlobalLAxes, &dss, &null,
-                       &has_null);
-    get_image_wcs(inBlock, &GlobalXdesc, &GlobalYdesc);
-    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, GlobalLAxes, dss,
-                       null, has_null, GlobalXdesc, GlobalYdesc);
-    npix = (GlobalLAxes[0] * GlobalLAxes[1]);
-    if (npix == 0) {
-        err_msg("ERROR: Image is empty (one axis is 0 length)\n");
-        return (-1);
-    }
-    GlobalXLen = GlobalLAxes[0];
-    GlobalYLen = GlobalLAxes[1];
-
-
-    /* Allocate memory for the products */
-    if (( NULL == (GlobalDErr = (float *) calloc(npix, sizeof(float)))) ||
-        ( NULL == (GlobalOutData = (float *) calloc(npix, sizeof(float)))) ||
-        ( NULL == (GlobalOutArea = (float *) calloc(npix, sizeof(float)))) ||
-        ( NULL == (GlobalOutSNR = (float *) calloc(npix, sizeof(float)))) ||
-        ( NULL == (GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long)))) ||
-        ( NULL == (GlobalMaskRegion = regCreateEmptyRegion())) ) {
-        err_msg("ERROR: Problem allocating memory");
-        return(-34);            
-    }
-
-
-    if (0 != load_error_image(errimg)) {
-        return -1;
-    }
-
-    /* Start Algorithm */
-
-    if ( RADAR ) {
-
-        if (GlobalInnerRadius > 0) {
-            fill_region(0, GlobalStartAngle, GlobalInnerRadius,
-                        GlobalStopAngle);
-        }
-        abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
-                 GlobalStopAngle);
-    } else {
-
-        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);        
-    }
-
-    /* Write out files -- NB: mask file has different datatypes and different extensions */
-    write_output( inBlock, outfile, GlobalOutData, clobber, dmFLOAT, NULL );
-    write_output( inBlock, areafile, GlobalOutArea, clobber, dmFLOAT, NULL );
-    write_output( inBlock, snrfile, GlobalOutSNR, clobber, dmFLOAT, NULL );
-    write_output( inBlock, maskfile, GlobalMask, clobber, dmULONG, GlobalMaskRegion);
-
-    /* Must keep open until now to do all the wcs/hdr copies */
-    dmImageClose(inBlock);
-
+void free_globals(void)
+{
     /* make valgrind happy */
     free(GlobalData);
     free(GlobalDErr);
@@ -883,7 +864,111 @@ int abin(void)
     free(GlobalOutSNR);
     free(GlobalMask);
 
+}
 
+
+int write_outputs( dmBlock *inBlock, Parameters *pp)
+{
+    /* Write out files -- NB: mask file has different datatypes and different extensions */
+    if ( ( 0 != write_single_output( inBlock, pp->outfile, GlobalOutData, pp->clobber, dmFLOAT, NULL )) ||
+         ( 0 != write_single_output( inBlock, pp->areafile, GlobalOutArea, pp->clobber, dmFLOAT, NULL )) ||    
+         ( 0 != write_single_output( inBlock, pp->snrfile, GlobalOutSNR, pp->clobber, dmFLOAT, NULL )) ||
+         ( 0 != write_single_output( inBlock, pp->maskfile, GlobalMask, pp->clobber, dmULONG, GlobalMaskRegion))) {
+        return(-1);
+     }
+
+    return(0);
+}
+
+Parameters *load_parameters(void)
+{
+    Parameters *par = (Parameters*)calloc(1,sizeof(Parameters));
+    
+    if ( NULL == par ) {
+        return(NULL);
+    }
+    
+    /* Read in all the data */
+    clgetstr("infile", par->infile, DS_SZ_FNAME);
+    clgetstr("outfile", par->outfile, DS_SZ_FNAME);
+    GlobalSNRThresh = clgetd("snr");
+    GlobalX0 = clgetd("xcenter");
+    GlobalY0 = clgetd("ycenter");
+    par->method = clgeti("method");
+
+    GlobalInnerRadius = clgetd("rstart");
+    GlobalOuterRadius = clgetd("rstop");
+    GlobalStartAngle = clgetd("astart");
+    GlobalStopAngle = clgetd("astop");
+    GlobalMinRadius = clgetd("minradius");
+    GlobalMinAngle = clgetd("minangle");
+
+    GlobalEllipticity = 1.0;
+    GlobalShapeFunction = make_pie;
+    GlobalLimitsFunction = polar_limits;
+
+    clgetstr("inerrfile", par->errimg, DS_SZ_FNAME);
+    clgetstr("outmaskfile", par->maskfile, DS_SZ_FNAME);
+    clgetstr("outsnrfile", par->snrfile, DS_SZ_FNAME);
+    clgetstr("outareafile", par->areafile, DS_SZ_FNAME);
+    par->clobber = clgetb("clobber");
+
+    
+    return(par);
+}
+
+
+
+
+/* Main routine; does all the work of a quad-tree adaptive binning routine*/
+int abin(void)
+{
+
+    Parameters *pp;
+    if ( NULL == (pp = load_parameters())) {
+        return(-1);
+    }
+
+    if ( 0 != map_method(pp->method) ) {
+        return(-1);
+    }   
+
+    if ( 0 != autoname(pp)) {
+        return(-1);
+    }
+
+    dmBlock *inBlock;
+    if ( NULL == (inBlock = load_infile( pp->infile))) {
+        return(-1);
+    }
+
+    if ( 0 != allocate_memory() ) {
+        return(-1);
+    }
+
+    if (0 != load_error_image(pp->errimg)) {
+        return -1;
+    }
+
+    /* Start Algorithm */
+    if ( RADAR ) {
+        if (GlobalInnerRadius > 0) {
+            fill_region(0, GlobalStartAngle, GlobalInnerRadius, GlobalStopAngle);
+        }
+        abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
+                 GlobalStopAngle);
+    } else {
+        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);        
+    }
+
+    if ( 0 != write_outputs( inBlock, pp)) {
+        return(-1);
+    }
+
+
+    /* Must keep open until now to do all the wcs/hdr copies */
+    dmImageClose(inBlock);
+    free_globals();
     return (0);
 
 }
