@@ -49,14 +49,14 @@ unsigned long *GlobalMask;      /* o: output mask */
 long GlobalXLen;                /* i: length of x-axis (full img) */
 long GlobalYLen;                /* i: length of y-axis (full img) */
 long *GlobalLAxes;            /* X,Y lens togeether */
-float GlobalSNRThresh;          /* i: SNR threshold */
-enum { ZERO_ABOVE = 0, ONE_ABOVE, TWO_ABOVE, THREE_ABOVE, ALL_ABOVE } GlobalSplitCriteria;
 dmDataType GlobalDataType;
 dmDescriptor *GlobalXdesc = NULL;
 dmDescriptor *GlobalYdesc = NULL;
 short *GlobalPixMask = NULL;
 
 
+float GlobalSNRThresh;          /* i: SNR threshold */
+enum { ZERO_ABOVE = 0, ONE_ABOVE, TWO_ABOVE, THREE_ABOVE, ALL_ABOVE } GlobalSplitCriteria;
 double GlobalX0;                // =  4274.5; // 4001.9; //4274.0;
 double GlobalY0;                // =  3956.0; // 3850.5; // 3954.0;
 double GlobalInnerRadius;       // = 5.0;
@@ -68,7 +68,6 @@ double GlobalMinAngle;          // = 1 ;
 double GlobalEllipticity;
 int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
 void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, double p[4], double q[4]) = NULL;
-#define RADAR 1
 
 
 typedef struct {
@@ -78,6 +77,7 @@ typedef struct {
     char areafile[DS_SZ_FNAME];
     char maskfile[DS_SZ_FNAME];
     char snrfile[DS_SZ_FNAME];
+    char shape[100];
     short method;
     short clobber;
 } Parameters;
@@ -106,6 +106,8 @@ regRegion *make_region(regRegion * inreg, double a_min, double b_min,
                     double a_len, double b_len, long *xs, long *xl,
                     long *ys, long *yl);
 void fill_region(double a_min, double b_min, double a_len, double b_len);
+
+
 int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, 
         short clobber, dmDataType dt, regRegion *outreg);
 int write_outputs( dmBlock *inBlock, Parameters *pp);
@@ -115,8 +117,9 @@ int allocate_memory(void);
 int autoname( Parameters *pp );
 int map_method( short method ) ;
 void free_globals(void);
-
 Parameters *load_parameters(void);
+int aux_output(char *outfile, char *auxoutfile, char *suffix, short clobber );
+int map_shapes( char *shape );
 
 
 /*
@@ -137,8 +140,6 @@ int make_bpanda( regRegion *reg, double a_min, double b_min, double a_len, doubl
 int make_rotbox( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 void polar_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
 void cartesian_limits( double a_min, double b_min, double a_len, double b_len, double pp[4],double qq[4] );
-
-
 
 
 
@@ -199,6 +200,16 @@ int invert_coords(dmDescriptor *xdesc,
 
 /* ---------------------------------------------- */
 
+/* Which shapes use which parameters?
+ * 
+ *  | shape    |rstart |rstop |astart |astop |minrad |minang |ellip |
+ *  |----------|-------|------|-------|------|-------|-------|------|
+ *  | pie      | +     | +    |  +    | +    |  +    |  +    |  o   |
+ *  | epanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
+ *  | bpanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
+ *  | box      | o     | +    |  +    | o    |  +    |  o    |  +   |
+ * 
+ */
 
 int make_pie( regRegion *reg, 
                double a_min, 
@@ -286,8 +297,25 @@ int make_rotbox( regRegion *reg,
                double b_len
                )
 {
+    
+    /*
+     * Ugly ... but what I've seen is that due to numerical precision,
+     * we can end up with regions where the 4 corners meet that land "exactly"
+     * in the middle of a pixel then that pixel may never get included.
+     * The limited precision in the location or lengths leaves the "gap".
+     * 
+     * Basically I need to increase the size of the regions by a tiny fraction
+     * so that regions overlap ever so slightly.  That way they fully cover
+     * the image.
+     * 
+     * Now, this does introduce some ambiguity when the pixel center lands
+     * within this overlap region -- but we already have that (technically
+     * the edge of the region is included, so abutting edges overlap). 
+     * So I'm okay with this.
+     */
+    double FUDGE_FACTOR = 0.00001;
 
-    double ll[2] = { a_len, b_len };
+    double ll[2] = { a_len+FUDGE_FACTOR, b_len+FUDGE_FACTOR };
     regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
                    &GlobalStartAngle, 0, 0);
     return(0);
@@ -369,11 +397,11 @@ double get_snr(double a_min,
 
 
     /* Determine SNR for current sub-image */
-    for (ii = xs; ii < (xl + xs); ii++) {
+    for (ii = xs-1; ii <= (xl + xs)+1; ii++) {
         if (ii < 0 || ii >= GlobalXLen) {
             continue;
         }
-        for (jj = ys; jj < (yl + ys); jj++) {
+        for (jj = ys-1; jj <= (yl + ys)+1; jj++) {
             long pix;
             if (jj < 0 || jj >= GlobalYLen) {
                 continue;
@@ -446,11 +474,11 @@ void fill_region(double a_min,
     mask_no += 1;               /* statically increases per bin */
 
     /* store output values */
-    for (ii = xs; ii < xs + xl; ii++) {
+    for (ii = xs-1; ii <= xs + xl+1; ii++) {
         if (ii < 0 || ii >= GlobalXLen) {
             continue;
         }
-        for (jj = ys; jj < ys + yl; jj++) {
+        for (jj = ys-1; jj <= ys + yl+1; jj++) {
             long pix;
 
             if (jj < 0 || jj >= GlobalYLen) {
@@ -533,11 +561,11 @@ void cartesian_limits( double a_min,
     double c_a = cos(rad_ang);
     double s_a = sin(rad_ang);
 
+
     // rotate a_min,b_min backwards: note cos(a) = cos(-a) and 
-    // -sin(a)=sin(-a)
-    
-    double r0 =    (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
-    double a0 =   -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
+    // -sin(a)=sin(-a)    
+    double r0 =  (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
+    double a0 = -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
 
     // Lower left -- rotate back
     rot_x = r0-dpp;
@@ -563,7 +591,13 @@ void cartesian_limits( double a_min,
     pp[3] = rot_x*c_a - rot_y*s_a + GlobalX0;
     qq[3] = rot_x*s_a + rot_y*c_a + GlobalY0;
 
+
 }
+
+
+
+
+
 
 
 /* Recursive binning routine */
@@ -672,10 +706,8 @@ int load_error_image(char *errimg)
 
         for (yy = 0; yy < GlobalYLen; yy++) {
             for (xx = 0; xx < GlobalXLen; xx++) {
-
                 jj = xx + yy * GlobalXLen;
-                pixval =
-                    get_image_value(GlobalData, GlobalDataType, xx, yy,
+                pixval = get_image_value(GlobalData, GlobalDataType, xx, yy,
                                     GlobalLAxes, GlobalPixMask);
 
                 if (ds_dNAN(pixval)) {
@@ -727,9 +759,6 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
         return(0);
     }
 
-    if (ds_clobber(outfile, clobber, NULL) != 0) {
-        return(1);
-    }
 
     outBlock = dmImageCreate(outfile, dt, GlobalLAxes, 2);
     if (outBlock == NULL) {
@@ -812,6 +841,21 @@ int allocate_memory(void)
 }
 
 
+
+
+int aux_output(char *outfile, char *auxoutfile, char *suffix, short clobber )
+{
+    ds_autoname(outfile, auxoutfile, suffix, DS_SZ_FNAME);
+    if (strlen(auxoutfile)>0 && 0!=ds_strcmp_cis(auxoutfile,"none")) {
+        if (ds_clobber(auxoutfile, clobber, NULL) != 0) {
+            return(1);
+        }        
+    }
+    return(0);
+}
+
+
+
 int autoname( Parameters *pp)
 {
     long maxlen = DS_SZ_FNAME;
@@ -829,9 +873,16 @@ int autoname( Parameters *pp)
         return(-2);
     }
 
-    ds_autoname(pp->outfile, pp->maskfile, "maskimg", maxlen);
-    ds_autoname(pp->outfile, pp->snrfile, "snrimg", maxlen);
-    ds_autoname(pp->outfile, pp->areafile, "areaimg", maxlen);
+    if (ds_clobber(pp->outfile, pp->clobber, NULL) != 0) {
+        return(1);
+    }
+
+    if (( 0 != aux_output( pp->outfile, pp->maskfile, "maskimg", pp->clobber)) ||
+        ( 0 != aux_output( pp->outfile, pp->snrfile, "snrimg", pp->clobber)) ||
+        ( 0 != aux_output( pp->outfile, pp->areafile, "areaimg", pp->clobber))) {
+        return(1);
+    }
+
 
     return(0);
 }
@@ -895,17 +946,18 @@ Parameters *load_parameters(void)
     GlobalX0 = clgetd("xcenter");
     GlobalY0 = clgetd("ycenter");
     par->method = clgeti("method");
+    clgetstr( "shape", par->shape, 99 );
 
     GlobalInnerRadius = clgetd("rstart");
     GlobalOuterRadius = clgetd("rstop");
     GlobalStartAngle = clgetd("astart");
     GlobalStopAngle = clgetd("astop");
+
+    GlobalEllipticity = clgetd("ellipticity");
+
     GlobalMinRadius = clgetd("minradius");
     GlobalMinAngle = clgetd("minangle");
 
-    GlobalEllipticity = 1.0;
-    GlobalShapeFunction = make_pie;
-    GlobalLimitsFunction = polar_limits;
 
     clgetstr("inerrfile", par->errimg, DS_SZ_FNAME);
     clgetstr("outmaskfile", par->maskfile, DS_SZ_FNAME);
@@ -913,10 +965,34 @@ Parameters *load_parameters(void)
     clgetstr("outareafile", par->areafile, DS_SZ_FNAME);
     par->clobber = clgetb("clobber");
 
-    
     return(par);
 }
 
+
+int map_shapes( char *shape )
+{
+    if ( 0 ==  strcmp(shape, "pie") ) {
+        GlobalShapeFunction = make_pie;
+        GlobalLimitsFunction = polar_limits;        
+    } else if ( 0 == strcmp(shape, "epanda")) {
+        GlobalShapeFunction = make_epanda;
+        GlobalLimitsFunction = polar_limits;                
+    } else if ( 0 == strcmp(shape, "bpanda")) {
+        GlobalShapeFunction = make_bpanda;
+        GlobalLimitsFunction = polar_limits;                
+    } else if ( 0 == strcmp(shape, "box")) {
+        GlobalShapeFunction = make_rotbox;
+        GlobalLimitsFunction = cartesian_limits;
+    } else {
+        err_msg("ERROR: Unknown shape='%s'", shape);
+        return(-1);
+    }
+    
+    
+
+    return(0);
+    
+}
 
 
 
@@ -932,6 +1008,10 @@ int abin(void)
     if ( 0 != map_method(pp->method) ) {
         return(-1);
     }   
+
+    if ( 0 != map_shapes(pp->shape)) {
+        return(-1);
+    }
 
     if ( 0 != autoname(pp)) {
         return(-1);
@@ -951,7 +1031,7 @@ int abin(void)
     }
 
     /* Start Algorithm */
-    if ( RADAR ) {
+    if ( polar_limits == GlobalLimitsFunction ) {
         if (GlobalInnerRadius > 0) {
             fill_region(0, GlobalStartAngle, GlobalInnerRadius, GlobalStopAngle);
         }
