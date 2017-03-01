@@ -1,5 +1,5 @@
 /*                                                                
-**  Copyright (C) 2004-2008  Smithsonian Astrophysical Observatory 
+**  Copyright (C) 2004-2008,2016,2017  Smithsonian Astrophysical Observatory 
 */
 
 /*                                                                          */
@@ -211,6 +211,12 @@ int invert_coords(dmDescriptor *xdesc,
  * 
  */
 
+double FUDGE_FACTOR = 0.00001;
+
+
+/* technically a pie could be made using the epanda logic, but that runs
+ * much slower so we use the dedicated shape instead
+ */
 int make_pie( regRegion *reg, 
                double a_min, 
                double b_min,
@@ -226,11 +232,16 @@ int make_pie( regRegion *reg,
     reg_ang[1] = b_min + b_len;
     regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
                    reg_ang, 0, 0);
-
     return(0);
 }
 
 
+/*
+ * Create a series of ellptical pie's (elliptical annulus over a fraction of angles)
+ * 
+ * ellipse(x0,y0,mjr_outer,mnr_outer,rotangle)*!ellipse(x0,y0,mjr_inner,mnr_inner,rotangle)*sector(x0,y0,start_ang,stop_ang)
+ * 
+ */
 int make_epanda( regRegion *reg, 
                double a_min, 
                double b_min,
@@ -256,11 +267,15 @@ int make_epanda( regRegion *reg,
     regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
                    reg_ang, 0, 0);
 
-
     return(0);
 }
 
 
+/*
+ * 
+ * similar to above, but now using rotbox's instead of ellipses
+ * 
+ */
 int make_bpanda( regRegion *reg, 
                double a_min, 
                double b_min,
@@ -285,11 +300,13 @@ int make_bpanda( regRegion *reg,
     regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
                    reg_ang, 0, 0);
 
-
     return(0);
 }
 
 
+/*
+ *  For the cartesian grid we only use rotbox's
+ */
 int make_rotbox( regRegion *reg, 
                double a_min, 
                double b_min,
@@ -313,7 +330,6 @@ int make_rotbox( regRegion *reg,
      * the edge of the region is included, so abutting edges overlap). 
      * So I'm okay with this.
      */
-    double FUDGE_FACTOR = 0.00001;
 
     double ll[2] = { a_len+FUDGE_FACTOR, b_len+FUDGE_FACTOR };
     regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
@@ -322,8 +338,9 @@ int make_rotbox( regRegion *reg,
 }
 
 
-
-
+/*
+ *  Create the region and return a bounding box around it.
+ */
 regRegion *make_region(regRegion *inreg, 
                    double a_min, 
                    double b_min,
@@ -340,7 +357,6 @@ regRegion *make_region(regRegion *inreg,
     reg = inreg ? inreg : regCreateEmptyRegion();
 
     GlobalShapeFunction( reg, a_min, b_min, a_len, b_len );
-
 
     if (xs && ys && xl && yl) {
         double xrange[2], yrange[2];
@@ -412,7 +428,6 @@ double get_snr(double a_min,
                 continue;
             }
 
-
             pix = ii + (jj * GlobalXLen);
 
             if (0 != GlobalMask[pix]) {
@@ -429,8 +444,9 @@ double get_snr(double a_min,
             *area += 1;
 
 
-        }
-    }
+        } // end for jj
+    }  // end for ii
+    
     regFree(reg);
 
     locsnr = val / sqrt(noise);
@@ -501,7 +517,7 @@ void fill_region(double a_min,
                                      GlobalLAxes, GlobalPixMask);
 
             if (ds_dNAN(pixval)) {
-                GlobalOutData[pix] = pixval;
+                GlobalOutData[pix] = pixval; // ie NaN
                 GlobalOutArea[pix] = pixval;
                 GlobalMask[pix] = 0;
                 GlobalOutSNR[pix] = pixval;
@@ -557,7 +573,7 @@ void cartesian_limits( double a_min,
     dqq = b_len/4.0;
 
     double rot_x, rot_y;
-    double rad_ang = GlobalStartAngle*3.141592/180.0;
+    double rad_ang = GlobalStartAngle*DEG2RAD;
     double c_a = cos(rad_ang);
     double s_a = sin(rad_ang);
 
@@ -593,11 +609,6 @@ void cartesian_limits( double a_min,
 
 
 }
-
-
-
-
-
 
 
 /* Recursive binning routine */
@@ -681,8 +692,8 @@ void abin_rec(double a_min,
         /* Enter recursion */
         
         abin_rec(pp[0],qq[0],dpp,dqq); /* low-left */
-        abin_rec(pp[1],qq[1],dpp,dqq);     /* low-rite */
-        abin_rec(pp[2],qq[2],dpp,dqq);     /* up-left */
+        abin_rec(pp[1],qq[1],dpp,dqq); /* low-rite */
+        abin_rec(pp[2],qq[2],dpp,dqq); /* up-left */
         abin_rec(pp[3],qq[3],dpp,dqq); /* up-rite */
         return;
     }
@@ -715,7 +726,6 @@ int load_error_image(char *errimg)
                 } else {
                     GlobalDErr[jj] = sqrt(pixval);      // assumes Gaussian stats
                 }
-
             }                   // end xx
         }                       // end yy
 
@@ -739,9 +749,7 @@ int load_error_image(char *errimg)
             return (-1);
         }
         // get_data( errDs, npix, GlobalDErr );
-
         dmGetArray_f(errDs, GlobalDErr, npix);
-
         dmImageClose(erBlock);
     }
 
@@ -759,11 +767,11 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
         return(0);
     }
 
-
     outBlock = dmImageCreate(outfile, dt, GlobalLAxes, 2);
     if (outBlock == NULL) {
         err_msg("ERROR: Could not create output '%s'\n", outfile);
     }
+
     outDes = dmImageGetDataDescriptor(outBlock);
     dmBlockCopy(inBlock, outBlock, "HEADER");
     ds_copy_full_header(inBlock, outBlock, "dmradar", 0);
@@ -842,7 +850,7 @@ int allocate_memory(void)
 
 
 
-
+/* help for autoname f() below for the aux files */
 int aux_output(char *outfile, char *auxoutfile, char *suffix, short clobber )
 {
     ds_autoname(outfile, auxoutfile, suffix, DS_SZ_FNAME);
@@ -855,7 +863,7 @@ int aux_output(char *outfile, char *auxoutfile, char *suffix, short clobber )
 }
 
 
-
+/* Setup the output file names and clobber if they exist */
 int autoname( Parameters *pp)
 {
     long maxlen = DS_SZ_FNAME;
@@ -887,6 +895,15 @@ int autoname( Parameters *pp)
     return(0);
 }
 
+
+/* Determine which algorithm to use based on the number of sub-images
+ * that need to be *above* SNR limit in the final image.
+ * 
+ * 0 is the orignal dmnautilus algorithm, where it keeps trying to split
+ * until pixels are below SNR
+ * 
+ * '4' requires all 4 sub-images to be above SNR limit.
+ */
 int map_method( short method ) 
 {
 
@@ -934,7 +951,6 @@ int write_outputs( dmBlock *inBlock, Parameters *pp)
 Parameters *load_parameters(void)
 {
     Parameters *par = (Parameters*)calloc(1,sizeof(Parameters));
-    
     if ( NULL == par ) {
         return(NULL);
     }
@@ -957,7 +973,6 @@ Parameters *load_parameters(void)
 
     GlobalMinRadius = clgetd("minradius");
     GlobalMinAngle = clgetd("minangle");
-
 
     clgetstr("inerrfile", par->errimg, DS_SZ_FNAME);
     clgetstr("outmaskfile", par->maskfile, DS_SZ_FNAME);
@@ -987,8 +1002,6 @@ int map_shapes( char *shape )
         err_msg("ERROR: Unknown shape='%s'", shape);
         return(-1);
     }
-    
-    
 
     return(0);
     

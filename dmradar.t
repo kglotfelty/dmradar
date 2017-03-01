@@ -219,25 +219,25 @@ do
     ### FIXME!!!! replace LOCAL_INPUT with $INDIR
     ### FIXME!!!! replace LOCAL_SAVE with $SAVDIR
     
-    new_zero )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_zero )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
             ;;
             
-    new_one )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_one )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
             ;;
             
-    new_two )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
-
-            ;;
-            
-    new_three )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_two )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
             
-    new_four )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+    new_three )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                savfile=LOCAL_SAVE/${testid}.fits
+
+            ;;
+            
+    new_four )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
                 savfile=LOCAL_SAVE/${testid}.fits
 
             ;;
