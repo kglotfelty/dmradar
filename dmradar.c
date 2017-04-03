@@ -89,6 +89,10 @@ typedef struct {
  */
 #include "dmimgio.h"
 
+#ifdef DEMO_MODE
+FILE *global_demo_file;
+#endif
+
 
 /* ------Prototypes ----------------------- */
 
@@ -126,7 +130,7 @@ int map_shapes( char *shape );
  *  Note:  In the interface, if using polar grid then:
  * 
  *     a_min is the starting radius, a_len is the length (so from a_min to a_min+a_len).
- *     b_min is the starting angle, b_len is the length (so from b_min to b_min_b_len).
+ *     b_min is the starting angle, b_len is the length (so from b_min to b_min+b_len).
  * 
  * If using a rectangular grid, then
  *     a_min is the *middle* of the rectangle x-axis, a_len is the total lenthg (a_min-a_len/2 to a_min+a_len/2)
@@ -264,9 +268,11 @@ int make_epanda( regRegion *reg,
     regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
 
-    regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
-                   reg_ang, 0, 0);
-
+    if ( b_len < 360.0 ) {
+        regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
+                    reg_ang, 0, 0);
+    }
+    
     return(0);
 }
 
@@ -297,9 +303,10 @@ int make_bpanda( regRegion *reg,
     regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
 
-    regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
-                   reg_ang, 0, 0);
-
+    if (b_len < 360.0) {
+        regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
+                    reg_ang, 0, 0);
+    }
     return(0);
 }
 
@@ -376,6 +383,22 @@ regRegion *make_region(regRegion *inreg,
         *xl = ihi - ilo + 4;
         *yl = jhi - jlo + 4;
     }
+
+
+
+#ifdef DEMO_MODE    
+
+    if (inreg) {
+        // "epanda(4182.4908,3882.4997,44.993503,89.993503,1,100,75,400,300,1,19.993503)"
+
+        fprintf( global_demo_file, "physical; epanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n", 
+          GlobalX0,GlobalY0, b_min-GlobalStartAngle, b_min+b_len-GlobalStartAngle, 
+          a_min, a_min* GlobalEllipticity, 
+          (a_min+a_len), (a_min+a_len)*GlobalEllipticity, GlobalStartAngle );
+    }
+
+
+#endif
 
     return reg;
 }
@@ -1043,6 +1066,13 @@ int abin(void)
         return -1;
     }
 
+
+#ifdef DEMO_MODE
+    global_demo_file = fopen("demo.reg", "w");
+#endif
+
+
+
     /* Start Algorithm */
     if ( polar_limits == GlobalLimitsFunction ) {
         if (GlobalInnerRadius > 0) {
@@ -1057,6 +1087,11 @@ int abin(void)
     if ( 0 != write_outputs( inBlock, pp)) {
         return(-1);
     }
+
+
+#ifdef DEMO_MODE
+    fclose( global_demo_file);
+#endif
 
 
     /* Must keep open until now to do all the wcs/hdr copies */
