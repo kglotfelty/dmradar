@@ -1041,6 +1041,11 @@ int abin(void)
         return(-1);
     }
 
+    if ( (strcmp(pp->shape, "pie")==0) && ( 1 > GlobalEllipticity)) {
+        err_msg("WARNING: Setting ellipticity less than 1 has no effect when using shape=pie");
+    }
+
+
     if ( 0 != map_method(pp->method) ) {
         return(-1);
     }   
