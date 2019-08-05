@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ardlib
+Description: MIT ARDLIB library
+Version: 4.11
+Requires: pix 
+Libs: -L${libdir} -lardlib
+Cflags: -I${includedir}
