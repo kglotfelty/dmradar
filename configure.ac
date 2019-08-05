@@ -1,4 +1,4 @@
-AC_INIT([mytool], [1.0.0], [glotfeltyk@si.edu])
+AC_INIT([dmradar], [1.0.0], [glotfeltyk@si.edu])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -89,7 +89,7 @@ AC_CONFIG_FILES([
   test/Makefile
 ])
 
-AC_CONFIG_FILES([wrapper/mytool:wrapper/wrapper.sh],[chmod +x wrapper/mytool])
+AC_CONFIG_FILES([wrapper/dmradar:wrapper/wrapper.sh],[chmod +x wrapper/dmradar])
 
 # -- Go! -----------
 

@@ -1,1 +1,1 @@
-dist_bin_SCRIPTS = mytool
+dist_bin_SCRIPTS = dmradar
