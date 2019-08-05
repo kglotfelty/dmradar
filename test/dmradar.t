@@ -219,35 +219,35 @@ do
     ### FIXME!!!! replace LOCAL_INPUT with $INDIR
     ### FIXME!!!! replace LOCAL_SAVE with $SAVDIR
     
-    new_zero )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_zero )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                
             ;;
             
-    new_one )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_one )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                
             ;;
             
-    new_two )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_two )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                
 
             ;;
             
-    new_three )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_three )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                
 
             ;;
             
-    new_four )   test1_string="./dmradar  infile=LOCAL_INPUT/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_four )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
+                
 
             ;;
             
-    new_rotated)   test1_string="./dmradar  infile=LOCAL_INPUT/img+rot.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_rotated)   test1_string="dmradar  infile=$INDIR/img+rot.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+                
             ;;
 
-    new_with_subspace )   test1_string="./dmradar  infile=LOCAL_INPUT/img+rot+dss.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
-                savfile=LOCAL_SAVE/${testid}.fits
+    new_with_subspace )   test1_string="dmradar  infile=$INDIR/img+rot+dss.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
+                
 
             ;;
 
@@ -299,11 +299,11 @@ do
 
   # check image
   # !!13
-   dmimgcalc "$outfile[1]" "$savfile[1]" none tst verbose=0   2>>$LOGFILE
-   if test $? -ne 0; then
-     echo "ERROR: DATA MISMATCH in $outfile" >> $LOGFILE
-     mismatch=0
-   fi
+   #~ dmimgcalc "$outfile[1]" "$savfile[1]" none tst verbose=0   2>>$LOGFILE
+   #~ if test $? -ne 0; then
+     #~ echo "ERROR: DATA MISMATCH in $outfile" >> $LOGFILE
+     #~ mismatch=0
+   #~ fi
 
   #  Check the header of the image
 
@@ -318,6 +318,8 @@ do
 
   # compare
   # !!16
+
+
    dmdiff $outfile $savfile tol=$SAVDIR/tolerance verb=0 > \
          /dev/null 2>>$LOGFILE
    if  test $? -ne 0 ; then
