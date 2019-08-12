@@ -8,7 +8,7 @@ binexe_PROGRAMS = $(tool)
 
 dmradar_SOURCES = dmradar.c t_dmradar.c
 dmradar_CPPFLAGS = $(CIAO_CFLAGS)
-dmradar_LDADD = $(CIAO_LIBS) -ldmimgio
+dmradar_LDADD = $(CIAO_LIBS)
 dmradar_LINK = $(CXX) -o $@ -Wl,-rpath,$(prefix)/lib -Wl,-rpath,$(prefix)/ots/lib 
 
 # problems with libstdc++ and cxcparam on Linux :(
