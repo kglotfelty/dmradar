@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE cxchelptopics SYSTEM "CXCHelp.dtd">
 <cxchelptopics>
-   <ENTRY context="tools" key="dmnautilus" refkeywords="dm adaptive binning grouping group recursive shell quad tree nautilus" seealsogroups="dmimgtools">
+   <ENTRY context="tools" key="dmradar" refkeywords="dm adaptive binning grouping group recursive shell quad tree nautilus radar pie polar sector" seealsogroups="dmimgtools">
    <SYNOPSIS>
-	Perform a quad-tree adaptive binning on 2D images
+	Perform polar quad-tree adaptive binning on 2D images
    </SYNOPSIS>
    <DESC>
       <PARA>
-	`dmnautilus' does a form of adaptive binning of a 2D image
-	known as a 'quad-tree' algorithm. 
+    `dmradar' performs the a polar equivalent of a quad-tree 
+    adaptive binning algorithm used in `dmradar'.  Rather than 
+    splitting the image in X and Y, 
+    it works in polar coordinates:  angle and radii. 
         </PARA>
  
 
@@ -16,7 +18,7 @@
 	The tool computes the
 	signal-to-noise ratio (SNR) for the entire image and
     for the four sub-images taken by dividing the 
-    axis lengths in half.  Based on the 'method' parameter
+    angle in half and the radius in half.  Based on the 'method' parameter
     the algorithm will then either accept the full image, or
     iterate over each of the sub-images, repeating the divide-by-two 
     algorithm until the threshold criteria is met or a single pixel
@@ -39,10 +41,7 @@
     <PARA>
     With method=4, the SNR of all of the sub-images must be above the threshold
     for the sub-images to be used.  This is the most strict 
-    lower limit test; it may lead to some unexpected behavior with
-    rotated images -- especially around the edge of the image.
-    Users may see better results by rotating images to make the 
-    edges parallel to the X and Y axes.
+    lower limit test; it may lead to some unexpected behavior
     </PARA>
 
     <PARA>
@@ -92,11 +91,6 @@
 	using the same grouping scheme.
 	</PARA>
 
-	<PARA>
-	  While square images will give the most natural-looking
-	  binning, rectangular images can be input and rectangular
-	  bins will be used.  
-	</PARA>
     <PARA title="Image Edges">
       There is some special treatment for the edge of images, or
       more specifically, pixels outside the subspace.  If all 
@@ -106,15 +100,13 @@
       with images that contain large borders or gaps of unexposed 
       pixels.          
     </PARA>
-
-
-
    </DESC>
+
    <QEXAMPLELIST>
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmnautilus inimg.fits outimg.fits 9 method=0
+	dmradar inimg.fits outimg.fits 9 method=0
             </LINE>
          </SYNTAX>
          <DESC>
@@ -128,7 +120,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmnautilus inimg.fits outimg.fits 15 inerr=errs.fits method=0
+	dmradar inimg.fits outimg.fits 15 inerr=errs.fits method=0
             </LINE>
          </SYNTAX>
          <DESC>
@@ -141,7 +133,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmnautilus inimg.fits outimg.fits 9 outmaskfile=mask.fits method=4
+	dmradar inimg.fits outimg.fits 9 outmaskfile=mask.fits method=4
             </LINE>
          </SYNTAX>
          <DESC>
@@ -157,7 +149,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmnautilus inimg.fits . 9 outmask=. outsnr=. outarea=. method=4
+	dmradar inimg.fits . 9 outmask=. outsnr=. outarea=. method=4
             </LINE>
          </SYNTAX>
          <DESC>
@@ -169,6 +161,9 @@
          </DESC>
       </QEXAMPLE>
    </QEXAMPLELIST>
+
+
+
 
 
    <PARAMLIST>
@@ -306,29 +301,18 @@
       </PARAM>
    </PARAMLIST>
 
-  <ADESC title="Changes in CIAO X.Y.Z">
-    <PARA>
-    The 'method' parameter is new.  The original behavior of the 
-    tool, which uses the SNR as an upper limit (keeps dividing the
-    image until the SNR drops below the limit) is achieved using
-    method=0.
-    </PARA>
-    <PARA>
-    Setting method=1, 2, 3, or 4 allows using the SNR as a lower limit
-    with increasing strictness on the number of sub-images that must
-    exceed the SNR for them to be further divided.    
-    </PARA>
-
-  </ADESC>
 
 
 
-   <BUGS><PARA>
+
+
+   <BUGS>
+       <PARA>
 	See the
-        <HREF link="http://cxc.harvard.edu/ciao/bugs/dmnautilus.html">bugs page
+        <HREF link="https://cxc.cfa.harvard.edu/ciao/bugs/dmradar.html">bugs page
 	for this tool</HREF>
         on the CIAO website for an up-to-date listing of known bugs.
       </PARA></BUGS>
-   <LASTMODIFIED>May 2015</LASTMODIFIED>
+   <LASTMODIFIED>June 2020</LASTMODIFIED>
 </ENTRY>
 </cxchelptopics>
