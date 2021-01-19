@@ -77,7 +77,7 @@ dmradar \
 | bpanda    | ![dmradar epanda output](doc/bpanda4.abin.png)    |
 | box       | ![dmradar epanda output](doc/box4.abin.png)       |
 
-The `bpanda` and `box` use a different starting angle `astart=10` which
+The `bpanda` and `box` used a different starting angle `astart=10` which
 gives them their rotation.
 
 
@@ -96,4 +96,8 @@ wedge.
 > non-zero when transitioning between wedges. This is then used 
 > as a mask when displaying in `ds9`
 
+## Run-time Performance
 
+`epanda` and `bpanda` are **MUCH** slower than `pie` and `box`.  `pie` and `box` 
+may only take seconds to run on the same image that `epanda` and `bpanda`
+take several minutes to complete.
