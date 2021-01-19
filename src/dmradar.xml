@@ -26,12 +26,12 @@
         </PARA>
 
 
-    <PARA>
-    With method=1, if the SNR of any one of the sub-image greater than the 
+    <PARA title="SNR Criteria: method parameter">
+    With method=1, if the SNR of any one of the sub-images is greater than the 
     input threshold, then the sub-images are used.
     </PARA>
     <PARA>
-    With method=2, if the SNR of two sub-image that share a common side (ie not 
+    With method=2, if the SNR of two sub-images that share a common side (ie not 
     diagonal) are greater than the input threshold then the sub-images are used.    
     </PARA>
     <PARA>
@@ -41,7 +41,7 @@
     <PARA>
     With method=4, the SNR of all of the sub-images must be above the threshold
     for the sub-images to be used.  This is the most strict 
-    lower limit test; it may lead to some unexpected behavior
+    lower limit test; it may lead to some unexpected behavior.
     </PARA>
 
     <PARA>
@@ -91,22 +91,22 @@
 	using the same grouping scheme.
 	</PARA>
 
-    <PARA title="Image Edges">
-      There is some special treatment for the edge of images, or
-      more specifically, pixels outside the subspace.  If all 
-      the pixels in the sub-image are outside the subspace, then
-      that sub-image will be treated as having a SNR above threshold.
-      This allows for some better edge handing when working
-      with images that contain large borders or gaps of unexposed 
-      pixels.          
+    <PARA>
+        Users can also specify different shapes to be used.
+        The default is circular pie-annulus shaped regions.  Users can 
+        also use elliptical annulii (epanda) or box annulli (bpanda).
+        The special shape=box uses a Cartesian grid (ie an enhanced 
+        version of the original dmnautilus).     
     </PARA>
+
+
    </DESC>
 
    <QEXAMPLELIST>
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmradar inimg.fits outimg.fits 9 method=0
+	dmradar inimg.fits outimg.fits 9 method=0 xcenter=4096 ycenter=4096
             </LINE>
          </SYNTAX>
          <DESC>
@@ -120,7 +120,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmradar inimg.fits outimg.fits 15 inerr=errs.fits method=0
+	dmradar inimg.fits outimg.fits 15 inerr=errs.fits method=0 xcenter=4096 ycenter=4096
             </LINE>
          </SYNTAX>
          <DESC>
@@ -133,7 +133,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmradar inimg.fits outimg.fits 9 outmaskfile=mask.fits method=4
+	dmradar inimg.fits outimg.fits 9 outmaskfile=mask.fits method=4 xcenter=4096 ycenter=4096
             </LINE>
          </SYNTAX>
          <DESC>
@@ -149,7 +149,7 @@
       <QEXAMPLE>
          <SYNTAX>
             <LINE>
-	dmradar inimg.fits . 9 outmask=. outsnr=. outarea=. method=4
+	dmradar inimg.fits . 9 outmask=. outsnr=. outarea=. method=4 xcenter=4096 ycenter=4096
             </LINE>
          </SYNTAX>
          <DESC>
@@ -161,10 +161,6 @@
          </DESC>
       </QEXAMPLE>
    </QEXAMPLELIST>
-
-
-
-
 
    <PARAMLIST>
       <PARAM filetype="input" name="infile" reqd="yes" type="file">
@@ -195,11 +191,39 @@
          <DESC>
             <PARA>
 	The signal to noise ration to split the image into 4
-	sub-images.  It may seem unnatural but this is an upper-limit
-	on the SNR.
+	sub-images.  See the method parameter for a description of the 
+    how the limit is applied.
             </PARA>
          </DESC>
       </PARAM>
+
+    <PARAM name="xcenter" type="real" reqd="yes">
+      <SYNOPSIS>
+        The physical x-coordinate to use for the center of the binning.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            The xcenter and ycenter parameters are used as the center
+            of the binning.        
+        </PARA>
+        <PARA>
+          The inner most shape, centered on this location,  
+          out to a radius of rstart is always the first bin.        
+        </PARA>      
+      </DESC>    
+    </PARAM>
+    <PARAM name="ycenter" type="real" reqd="yes">
+      <SYNOPSIS>
+        The physical y-coordinate to use for the center of the binning.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            See xcenter.
+        </PARA>      
+      </DESC>    
+    </PARAM>
+
+
       <PARAM type="integer" name="method" def="0" min="0" max="4">
         <SYNOPSIS>
         SNR threshold method
@@ -228,6 +252,128 @@
         </DESC>
       </PARAM>
 
+    <PARAM name="shape" type="string" def="pie">
+      <SYNOPSIS>
+        The shape of the bins: pie, epanda, bpanda, or box.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+        The shape of the bins can be circular annulii (pie),
+        elliptical annulii (epanda), box annulii (bpanda), or
+        rotated rectangles (box).        
+        </PARA>
+
+        <PARA>
+        shape=box is a special case where a Cartesian rather than polar
+        grid is used. This makes is very similar to the original 
+        dmnautilus, but with more options like the choice of bin center
+        and rotation angle. 
+        </PARA>
+
+        <PARA title="Where does panda come from?">
+            The abbreviation panda comes from ds9.  It means
+            Pie AND Annulus. 
+        </PARA>
+      </DESC>
+    </PARAM>
+
+
+    <PARAM name="rstart" type="real" def="5" min="0">
+      <SYNOPSIS>
+        The inner most radius, in physical pixels.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            Pixels within the inner radius of the center are grouped
+            into a single group with the defined shape: circle, ellipse, or box.
+        </PARA>
+      </DESC>
+    </PARAM>
+
+    <PARAM name="rstop" type="real" def="1000" min="0">
+      <SYNOPSIS>
+        The outer most radius, in physical pixels.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+          The outer most radius to use for the initial quad-tree 
+          search algorithm.  Pixels outside this radius are ungrouped.        
+        </PARA>
+      </DESC>
+    </PARAM>
+
+    <PARAM name="astart" type="real" def="0" min="0">
+      <SYNOPSIS>
+        The starting angle, degrees CCW +X axis.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            The starting angle for the major axis of the shape. This 
+            essentially allows for the shapes to be rotated.        
+        </PARA>
+      </DESC>
+    </PARAM>
+    <PARAM name="astop" type="string" def="360" min="0">
+      <SYNOPSIS>
+        The stopping angle, measured in degrees from astart CCW.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            The astop is really the number of degrees to include in the
+            grid.  Pixels outside the range astart to astart+astop are
+            not grouped.  Setting astop=360 includes all angles.
+            Setting to less than 360 means only a wedge of angles will
+            be grouped. 
+        </PARA>
+      </DESC>
+    </PARAM>
+
+    <PARAM name="ellipticity" type="real" def="1" min="0" max="1">
+      <SYNOPSIS>
+        Ellipticity of epanda and bpanda regions.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+          In this case, ellipticity is simply the ratio of the minor-axis 
+          divided by the major axis.  A value of 1 means that major==minor
+          which produces circles and squares for epanda and bpanda.
+          A value of 0 mean minor=0, which is bad -- basically the 
+          shapes collapse down to a line.        
+        </PARA>
+        <PARA>
+            The major axis is drawn at an angle of "astart", measured
+            counter clockwise (CCW) from the +X axis.
+        </PARA>
+
+      </DESC>
+    </PARAM>
+
+    <PARAM name="minradius" type="real" def="0.5" min="0">
+      <SYNOPSIS>
+        The minimum allowable radius, in pixels, when dividing subimages.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            This parameter controls how far we will let the algorithm go
+            to try to split up pixels into groups.  It can continue to
+            divide the image until the minradius is reach at which point 
+            the group is used regardless of the SNR criteria.
+        </PARA>
+      </DESC>
+    </PARAM>
+
+    <PARAM name="minangle" type="real" def="1" min="0">
+      <SYNOPSIS>
+        The minimum allowable angle, in degrees, when dividing subimages.
+      </SYNOPSIS>
+      <DESC>
+        <PARA>
+            See minradius.
+        </PARA>
+      </DESC>
+    </PARAM>
+
+
 
       <PARAM filetype="input" name="inerrfile" reqd="no" type="file">
          <SYNOPSIS>
@@ -252,6 +398,30 @@
 	      to.  Can be used with <HREF link="http://cxc.harvard.edu/ciao/ahelp/dmmaskbin.html">dmmaskbin</HREF> to bin another image of the same
 	      dimension using the same grouping scheme.
 	</PARA>
+
+        <PARA>
+        The output mask file contains a REGION extension which contains the
+        individual regions that describe each group.
+        The REGION logic for epanda and bpanda is        
+        </PARA>
+<VERBATIM>
+shape_outer *! shape_inner * sector
+</VERBATIM>
+
+
+        <PARA>
+        where shape is either rotated ellipse or rotated box.
+        The sector captures the angle range.   It takes 3 shapes to describe
+        a grid.  In the FITS table, this will be 3 rows in the table 
+        all with the same COMPONENT value (the component value will not
+        necessarily equal the map pixel value).
+        </PARA>
+        <PARA title="Note: ds9">
+        Note that ds9 does not render the sector shape.  If you load the
+        region in ds9 it will skip over those shapes, omitting the angular
+        boundaries between groups.
+        </PARA>
+
          </DESC>
       </PARAM>
       <PARAM autoname="yes" filetype="output" name="outsnrfile" reqd="no" type="file">
@@ -313,6 +483,6 @@
 	for this tool</HREF>
         on the CIAO website for an up-to-date listing of known bugs.
       </PARA></BUGS>
-   <LASTMODIFIED>June 2020</LASTMODIFIED>
+   <LASTMODIFIED>January 2021</LASTMODIFIED>
 </ENTRY>
 </cxchelptopics>
