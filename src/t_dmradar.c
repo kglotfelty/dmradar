@@ -63,8 +63,9 @@ H***************************************************************** */
 
 #include "dslib.h"
 
+extern int abin(void);
 
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     int fail_status = 0; 
 
