@@ -77,7 +77,8 @@ dmradar \
 | bpanda    | ![dmradar epanda output](doc/bpanda4.abin.png)    |
 | box       | ![dmradar epanda output](doc/box4.abin.png)       |
 
-
+The `bpanda` and `box` use a different starting angle `astart=10` which
+gives them their rotation.
 
 
 For `epanda` and `bpanda`, the output `REGION` extension contains regions in the form of
