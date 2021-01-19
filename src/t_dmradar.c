@@ -1,6 +1,6 @@
-/*                                                                
-**  Copyright (C) 2004-2008  Smithsonian Astrophysical Observatory 
-*/                                                                
+/*
+**  Copyright (C) 2004-2008  Smithsonian Astrophysical Observatory
+*/
 
 /*                                                                          */
 /*  This program is free software; you can redistribute it and/or modify    */
@@ -46,7 +46,7 @@
 /*     THE  USE OR PERFORMANCE OF THIS SOFTWARE.                        */
 /*                                                                      */
 /************************************************************************/
- 
+
 /* H*****************************************************************
  *
  * FILE NAME: t_abin.c
@@ -56,7 +56,7 @@
  * DESCRIPTION:
  *
  * IRAF wrapper for abin tool
- *  
+ *
  *
  *
 H***************************************************************** */
@@ -67,12 +67,12 @@ extern int abin(void);
 
 int main(int argc, char** argv)
 {
-    int fail_status = 0; 
+    int fail_status = 0;
 
     dsErrInitLib(dsPTGRPERR, "dmradar");
 
     /* INIT THE IRAF ENVIRONMENT */
-    /* IRAFHOST_INIT;		*/
+    /* IRAFHOST_INIT;           */
 
     /* OPEN THE PARAMETER FILE */
     if(clinit(argv, argc, "rw") == NULL)
@@ -82,13 +82,13 @@ int main(int argc, char** argv)
        fail_status = -1;
     }
     else
-    {    
-       /* EXECUTE OUR PROGRAM */ 
+    {
+       /* EXECUTE OUR PROGRAM */
        fail_status = abin();
-    
+
        /* CLOSE PARAMETER FILE AND RETURN TO THE OS */
        clclose();
-    } 
-    
-    exit(fail_status); 
+    }
+
+    exit(fail_status);
 }

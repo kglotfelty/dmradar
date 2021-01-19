@@ -1,5 +1,5 @@
-/*                                                                
-**  Copyright (C) 2004-2008,2016,2017  Smithsonian Astrophysical Observatory 
+/*
+**  Copyright (C) 2004-2008,2016,2017  Smithsonian Astrophysical Observatory
 */
 
 /*                                                                          */
@@ -112,7 +112,7 @@ regRegion *make_region(regRegion * inreg, double a_min, double b_min,
 void fill_region(double a_min, double b_min, double a_len, double b_len);
 
 
-int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, 
+int write_single_output(dmBlock *inBlock, char *outfile, void *outdata,
         short clobber, dmDataType dt, regRegion *outreg);
 int write_outputs( dmBlock *inBlock, Parameters *pp);
 
@@ -128,16 +128,16 @@ int map_shapes( char *shape );
 
 /*
  *  Note:  In the interface, if using polar grid then:
- * 
+ *
  *     a_min is the starting radius, a_len is the length (so from a_min to a_min+a_len).
  *     b_min is the starting angle, b_len is the length (so from b_min to b_min+b_len).
- * 
+ *
  * If using a rectangular grid, then
  *     a_min is the *middle* of the rectangle x-axis, a_len is the total lenthg (a_min-a_len/2 to a_min+a_len/2)
  *     b_min is the *middle* of the rectangle y-axis, b_len is the total lenthg (b_min-b_len/2 to b_min+b_len/2)
  *
  */
- 
+
 int make_pie( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_epanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
 int make_bpanda( regRegion *reg, double a_min, double b_min, double a_len, double b_len);
@@ -150,11 +150,11 @@ void cartesian_limits( double a_min, double b_min, double a_len, double b_len, d
 /* ----------------------------- */
 
 
-int convert_coords(dmDescriptor *xdesc, 
-                  dmDescriptor *ydesc, 
+int convert_coords(dmDescriptor *xdesc,
+                  dmDescriptor *ydesc,
                   double xx,       /*Note: Using double rather than long here! */
                   double yy,   /* */
-                  double *xat, 
+                  double *xat,
                   double *yat)
 {
     if (xdesc) {
@@ -176,11 +176,11 @@ int convert_coords(dmDescriptor *xdesc,
 }
 
 
-int invert_coords(dmDescriptor *xdesc, 
-                 dmDescriptor *ydesc, 
+int invert_coords(dmDescriptor *xdesc,
+                 dmDescriptor *ydesc,
                  double xx,        /*Note: Using double rather than long here! */
                  double yy,    /* */
-                 double *ii, 
+                 double *ii,
                  double *jj)
 {
     if (xdesc) {
@@ -205,14 +205,14 @@ int invert_coords(dmDescriptor *xdesc,
 /* ---------------------------------------------- */
 
 /* Which shapes use which parameters?
- * 
+ *
  *  | shape    |rstart |rstop |astart |astop |minrad |minang |ellip |
  *  |----------|-------|------|-------|------|-------|-------|------|
  *  | pie      | +     | +    |  +    | +    |  +    |  +    |  o   |
  *  | epanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
  *  | bpanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
  *  | box      | o     | +    |  +    | o    |  +    |  o    |  +   |
- * 
+ *
  */
 
 double FUDGE_FACTOR = 0.00001;
@@ -221,10 +221,10 @@ double FUDGE_FACTOR = 0.00001;
 /* technically a pie could be made using the epanda logic, but that runs
  * much slower so we use the dedicated shape instead
  */
-int make_pie( regRegion *reg, 
-               double a_min, 
+int make_pie( regRegion *reg,
+               double a_min,
                double b_min,
-               double a_len, 
+               double a_len,
                double b_len
                )
 {
@@ -242,14 +242,14 @@ int make_pie( regRegion *reg,
 
 /*
  * Create a series of ellptical pie's (elliptical annulus over a fraction of angles)
- * 
+ *
  * ellipse(x0,y0,mjr_outer,mnr_outer,rotangle)*!ellipse(x0,y0,mjr_inner,mnr_inner,rotangle)*sector(x0,y0,start_ang,stop_ang)
- * 
+ *
  */
-int make_epanda( regRegion *reg, 
-               double a_min, 
+int make_epanda( regRegion *reg,
+               double a_min,
                double b_min,
-               double a_len, 
+               double a_len,
                double b_len
                )
 {
@@ -272,20 +272,20 @@ int make_epanda( regRegion *reg,
         regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
                     reg_ang, 0, 0);
     }
-    
+
     return(0);
 }
 
 
 /*
- * 
+ *
  * similar to above, but now using rotbox's instead of ellipses
- * 
+ *
  */
-int make_bpanda( regRegion *reg, 
-               double a_min, 
+int make_bpanda( regRegion *reg,
+               double a_min,
                double b_min,
-               double a_len, 
+               double a_len,
                double b_len
                )
 {
@@ -314,27 +314,27 @@ int make_bpanda( regRegion *reg,
 /*
  *  For the cartesian grid we only use rotbox's
  */
-int make_rotbox( regRegion *reg, 
-               double a_min, 
+int make_rotbox( regRegion *reg,
+               double a_min,
                double b_min,
-               double a_len, 
+               double a_len,
                double b_len
                )
 {
-    
+
     /*
      * Ugly ... but what I've seen is that due to numerical precision,
      * we can end up with regions where the 4 corners meet that land "exactly"
      * in the middle of a pixel then that pixel may never get included.
      * The limited precision in the location or lengths leaves the "gap".
-     * 
+     *
      * Basically I need to increase the size of the regions by a tiny fraction
      * so that regions overlap ever so slightly.  That way they fully cover
      * the image.
-     * 
+     *
      * Now, this does introduce some ambiguity when the pixel center lands
      * within this overlap region -- but we already have that (technically
-     * the edge of the region is included, so abutting edges overlap). 
+     * the edge of the region is included, so abutting edges overlap).
      * So I'm okay with this.
      */
 
@@ -348,14 +348,14 @@ int make_rotbox( regRegion *reg,
 /*
  *  Create the region and return a bounding box around it.
  */
-regRegion *make_region(regRegion *inreg, 
-                   double a_min, 
+regRegion *make_region(regRegion *inreg,
+                   double a_min,
                    double b_min,
-                   double a_len, 
-                   double b_len,  
-                   long *xs, 
+                   double a_len,
+                   double b_len,
+                   long *xs,
                    long *xl,
-                   long *ys, 
+                   long *ys,
                    long *yl)
 {
     /*  */
@@ -386,14 +386,14 @@ regRegion *make_region(regRegion *inreg,
 
 
 
-#ifdef DEMO_MODE    
+#ifdef DEMO_MODE
 
     if (inreg) {
         // "epanda(4182.4908,3882.4997,44.993503,89.993503,1,100,75,400,300,1,19.993503)"
 
-        fprintf( global_demo_file, "physical; epanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n", 
-          GlobalX0,GlobalY0, b_min-GlobalStartAngle, b_min+b_len-GlobalStartAngle, 
-          a_min, a_min* GlobalEllipticity, 
+        fprintf( global_demo_file, "physical; epanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n",
+          GlobalX0,GlobalY0, b_min-GlobalStartAngle, b_min+b_len-GlobalStartAngle,
+          a_min, a_min* GlobalEllipticity,
           (a_min+a_len), (a_min+a_len)*GlobalEllipticity, GlobalStartAngle );
     }
 
@@ -407,10 +407,10 @@ regRegion *make_region(regRegion *inreg,
 
 /* Compute the signal to noise ratio in the sub-image.  Also returns the
  * sum of the pixel values and the area (number of non-null pixels) */
-double get_snr(double a_min, 
-               double b_min, 
-               double a_len, 
-               double b_len, 
+double get_snr(double a_min,
+               double b_min,
+               double a_len,
+               double b_len,
                float *oval,     /* o: sum of pixel values */
                long *area       /* o: number of pixels */
     )
@@ -469,7 +469,7 @@ double get_snr(double a_min,
 
         } // end for jj
     }  // end for ii
-    
+
     regFree(reg);
 
     locsnr = val / sqrt(noise);
@@ -480,9 +480,9 @@ double get_snr(double a_min,
 
 
 
-void fill_region(double a_min, 
-                double b_min, 
-                double a_len, 
+void fill_region(double a_min,
+                double b_min,
+                double a_len,
                 double b_len)
 {
     long xs;                    /* i: start of x-axis (sub img) */
@@ -565,9 +565,9 @@ void fill_region(double a_min,
 }
 
 
-void polar_limits( double a_min, 
-              double b_min,  
-              double a_len, 
+void polar_limits( double a_min,
+              double b_min,
+              double a_len,
               double b_len,
               double pp[4],
               double qq[4] )
@@ -579,13 +579,13 @@ void polar_limits( double a_min,
     pp[0] = a_min;     qq[0] = b_min;
     pp[1] = a_min+dpp; qq[1] = b_min;
     pp[2] = a_min;     qq[2] = b_min+dqq;
-    pp[3] = a_min+dpp; qq[3] = b_min+dqq;        
+    pp[3] = a_min+dpp; qq[3] = b_min+dqq;
 }
 
 
-void cartesian_limits( double a_min, 
-              double b_min,  
-              double a_len, 
+void cartesian_limits( double a_min,
+              double b_min,
+              double a_len,
               double b_len,
               double pp[4],
               double qq[4] )
@@ -601,8 +601,8 @@ void cartesian_limits( double a_min,
     double s_a = sin(rad_ang);
 
 
-    // rotate a_min,b_min backwards: note cos(a) = cos(-a) and 
-    // -sin(a)=sin(-a)    
+    // rotate a_min,b_min backwards: note cos(a) = cos(-a) and
+    // -sin(a)=sin(-a)
     double r0 =  (a_min-GlobalX0)*c_a + (b_min-GlobalY0)*s_a;
     double a0 = -(a_min-GlobalX0)*s_a + (b_min-GlobalY0)*c_a;
 
@@ -611,7 +611,7 @@ void cartesian_limits( double a_min,
     rot_y = a0-dqq;
     pp[0] = rot_x*c_a - rot_y*s_a + GlobalX0;
     qq[0] = rot_x*s_a + rot_y*c_a + GlobalY0;
-    
+
     // Lower right -- rotate back
     rot_x = r0+dpp;
     rot_y = a0-dqq;
@@ -635,9 +635,9 @@ void cartesian_limits( double a_min,
 
 
 /* Recursive binning routine */
-void abin_rec(double a_min, 
-              double b_min,  
-              double a_len, 
+void abin_rec(double a_min,
+              double b_min,
+              double a_len,
               double b_len)
 {
 
@@ -663,7 +663,7 @@ void abin_rec(double a_min,
 
         /* This new method will only split the 2x2 if when the sub images
          * are created, some/all of them will remain above the SNR limit.
-         * 
+         *
          */
 
         float ll, lr, ul, ur;
@@ -708,12 +708,12 @@ void abin_rec(double a_min,
             return;
         }
 
-    }                           // end else 
+    }                           // end else
 
 
     if ((check) && (a_len > GlobalMinRadius) && (b_len > GlobalMinAngle)) {
         /* Enter recursion */
-        
+
         abin_rec(pp[0],qq[0],dpp,dqq); /* low-left */
         abin_rec(pp[1],qq[1],dpp,dqq); /* low-rite */
         abin_rec(pp[2],qq[2],dpp,dqq); /* up-left */
@@ -780,7 +780,7 @@ int load_error_image(char *errimg)
 }
 
 
-int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, dmDataType dt, 
+int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short clobber, dmDataType dt,
     regRegion *outreg)
 {
     dmBlock *outBlock;
@@ -817,7 +817,7 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
     dmImageClose(outBlock);
 
     return(0);
-    
+
 }
 
 
@@ -826,7 +826,7 @@ dmBlock *load_infile( char *infile)
 {
     /* Read the data */
     dmBlock *inBlock;
- 
+
     inBlock = dmImageOpen(infile);
     if (!inBlock) {
         err_msg("ERROR: Could not open infile='%s'\n", infile);
@@ -844,7 +844,7 @@ dmBlock *load_infile( char *infile)
     GlobalXLen = GlobalLAxes[0];
     GlobalYLen = GlobalLAxes[1];
 
-    return(inBlock);    
+    return(inBlock);
 }
 
 
@@ -865,9 +865,9 @@ int allocate_memory(void)
         ( NULL == (GlobalMask = (unsigned long *) calloc(npix, sizeof(unsigned long)))) ||
         ( NULL == (GlobalMaskRegion = regCreateEmptyRegion())) ) {
         err_msg("ERROR: Problem allocating memory");
-        return(-34);            
+        return(-34);
     }
-    
+
     return(0);
 }
 
@@ -880,7 +880,7 @@ int aux_output(char *outfile, char *auxoutfile, char *suffix, short clobber )
     if (strlen(auxoutfile)>0 && 0!=ds_strcmp_cis(auxoutfile,"none")) {
         if (ds_clobber(auxoutfile, clobber, NULL) != 0) {
             return(1);
-        }        
+        }
     }
     return(0);
 }
@@ -921,13 +921,13 @@ int autoname( Parameters *pp)
 
 /* Determine which algorithm to use based on the number of sub-images
  * that need to be *above* SNR limit in the final image.
- * 
+ *
  * 0 is the orignal dmnautilus algorithm, where it keeps trying to split
  * until pixels are below SNR
- * 
+ *
  * '4' requires all 4 sub-images to be above SNR limit.
  */
-int map_method( short method ) 
+int map_method( short method )
 {
 
     switch (method) {
@@ -962,7 +962,7 @@ int write_outputs( dmBlock *inBlock, Parameters *pp)
 {
     /* Write out files -- NB: mask file has different datatypes and different extensions */
     if ( ( 0 != write_single_output( inBlock, pp->outfile, GlobalOutData, pp->clobber, dmFLOAT, NULL )) ||
-         ( 0 != write_single_output( inBlock, pp->areafile, GlobalOutArea, pp->clobber, dmFLOAT, NULL )) ||    
+         ( 0 != write_single_output( inBlock, pp->areafile, GlobalOutArea, pp->clobber, dmFLOAT, NULL )) ||
          ( 0 != write_single_output( inBlock, pp->snrfile, GlobalOutSNR, pp->clobber, dmFLOAT, NULL )) ||
          ( 0 != write_single_output( inBlock, pp->maskfile, GlobalMask, pp->clobber, dmULONG, GlobalMaskRegion))) {
         return(-1);
@@ -977,7 +977,7 @@ Parameters *load_parameters(void)
     if ( NULL == par ) {
         return(NULL);
     }
-    
+
     /* Read in all the data */
     clgetstr("infile", par->infile, DS_SZ_FNAME);
     clgetstr("outfile", par->outfile, DS_SZ_FNAME);
@@ -1011,13 +1011,13 @@ int map_shapes( char *shape )
 {
     if ( 0 ==  strcmp(shape, "pie") ) {
         GlobalShapeFunction = make_pie;
-        GlobalLimitsFunction = polar_limits;        
+        GlobalLimitsFunction = polar_limits;
     } else if ( 0 == strcmp(shape, "epanda")) {
         GlobalShapeFunction = make_epanda;
-        GlobalLimitsFunction = polar_limits;                
+        GlobalLimitsFunction = polar_limits;
     } else if ( 0 == strcmp(shape, "bpanda")) {
         GlobalShapeFunction = make_bpanda;
-        GlobalLimitsFunction = polar_limits;                
+        GlobalLimitsFunction = polar_limits;
     } else if ( 0 == strcmp(shape, "box")) {
         GlobalShapeFunction = make_rotbox;
         GlobalLimitsFunction = cartesian_limits;
@@ -1027,7 +1027,7 @@ int map_shapes( char *shape )
     }
 
     return(0);
-    
+
 }
 
 
@@ -1048,7 +1048,7 @@ int abin(void)
 
     if ( 0 != map_method(pp->method) ) {
         return(-1);
-    }   
+    }
 
     if ( 0 != map_shapes(pp->shape)) {
         return(-1);
@@ -1086,7 +1086,7 @@ int abin(void)
         abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
                  GlobalStopAngle);
     } else {
-        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);        
+        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);
     }
 
     if ( 0 != write_outputs( inBlock, pp)) {
