@@ -202,7 +202,7 @@ Divide that region into 4 quadrants:
 Compute the SNR in Q1, Q2, Q3, Q4.
 
   If inerrfile is none or blank:
-     # The Gaussian approximation: snr=N/sqrt(n)=sqrt(n)
+     # The Gaussian approximation: snr=N/sqrt(N)=sqrt(N)
 
      SNR=sqrt(SUM(p_q))
      
@@ -213,11 +213,70 @@ Compute the SNR in Q1, Q2, Q3, Q4.
 
   else:
   
+     SNR = SUM(p_q)/sqrt(SUM(e_q^2))
+     
+     where e_q are the pixel values from the input error image in the 
+     quadrant Q region.  In other words, the error term is computed
+     by adding the individual pixel error terms in quadrature. 
+
+If method == 0:
+
+   If the SNR is for all of the quadrants is BELOW the SNR threshold
+   then the current region is grouped.  Otherwise the current
+   region is grouped.
+
+elif method == 1:
+
+   If the SNR for any one Q1, Q2, Q3, or Q4 is ABOVE the threshold,
+   then the algorithm will proceed separately with Q1, Q2, Q3, and Q4.
+   Otherwise the current region is grouped.
+
+elif method == 2
+
+   If the SNR for any two quadrants which share a common side are
+   above the SNR threshold, then the algorithm will proceed with 
+   each quadrant separately. Quadrants that only touch at the corner
+   (ie diagonally) do not qualify. 
+
+elif method == 3:
+
+  If the SNR for any 3 quadrants are ABOVE the threshold, then 
+  the individual quadrants are processed.
   
+else method == 4:
+
+  If the SNR for all 4 quandrants are ABOVE the threshold, then
+  the individual quadrants are processed.
+  
+  
+The process continues until 
+
+. The number of quandrants above|below threshold no longer satisfies the
+  condition for the method setting.
+. Or the radius, dr_2, becomes smaller than the minimum allowed value, minradius parameter.
+. Or the angle, da_2, becomes smaller than the minimum allowed value, minangle parameter.
 
 
+If a quadrant contains only NULL, NaN, Inf, or pixels outside the
+data subspace, then the quadrant is treated as if if meets the 
+acceptance criteria to allow further splitting appropriate for the method.
+No special consideration for quandrants with only some Null/NaN/out-of-
+subpsace pixels.
 
+When pixels in a quadrant are grouped
 
+. The output image arrays for all the pixels in that region are 
+assigned the SUM(p_q)/AREA(p_q), ie the sum of all the pixels
+in the region averaged out over the area of the region.
+. The output mask array for all the pixels in that region are assigned 
+the same mask ID -- a unique integer number starting from 2. ('1' is used for 
+the first region described above).
+. The output snr array for all the pixels in that region are assigned 
+the SNR value computed for that region.
+. The output area array for all the pixel in that region are assigned the
+area, defined as the number of pixels, in that region.
+
+  
 
 ```
 
