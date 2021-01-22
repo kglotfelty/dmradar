@@ -25,7 +25,7 @@ ciao setup script for their environment (eg `bash`|`tcsh` and `conda`|`ciao-inst
 Users do not need to have the ciao source code installed.
 
 For internal CXC users, they can use the `Makefile.cxc` for example in 
-their views.
+their views. Make sure that you have built `src/da/analysis/dmtools/dmimgio` first.
 
 ```bash
 cd /tmp
@@ -61,7 +61,8 @@ If you get an error about `aclocal` then you may need to run
 ./autogen.sh
 ```
 
-before running `configure`.
+before running `configure`. You will need to have the standard set of
+autconfig tools installed.
 
 Then you can install `dmradar` in the same way
 
@@ -73,6 +74,22 @@ make
 make check
 make install
 ```
+
+If building into a conda environment you may need to create a fake
+`readline.pc` file
+
+```
+cat <<EOM > $ASCDS_INSTALL/lib/pkgconfig/readline.pc
+Name: readline
+Description: hack hack hack hack hack. do not use!
+Version: 7.0
+Requires: 
+Libs: 
+Cflags: 
+EOM
+```
+
+to satisfy the package-config requirements.
 
 
 
