@@ -199,6 +199,16 @@ Divide that region into 4 quadrants:
     Q3: inner=rstart outer=rstart+dr_2 start=astart+da_2 stop=astop+astart
     Q4: inner=rstart+dr_2 outer=rstop start=astart+da_2 stop=astop+astart
 
+    For shape == box:
+    
+      The center of the box is (x,y) is shifted to the center
+      of the quadrant, eg
+      
+      Q1: x = rstart+(dr_2)/2    y = astart + (da_2)
+      Q2: x = rstart+3*(dr_2)/2  y = astart + (da_2)
+      Q1: x = rstart+(dr_2)/2    y = astart + 3*(da_2)/2
+      Q2: x = rstart+3*(dr_2)/2  y = astart + 3*(da_2)/2
+
 Compute the SNR in Q1, Q2, Q3, Q4.
 
   If inerrfile is none or blank:
