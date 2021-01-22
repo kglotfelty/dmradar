@@ -155,8 +155,69 @@ wedge.
 > non-zero when transitioning between wedges. This is then used 
 > as a mask when displaying in `ds9`
 
-## Run-time Performance
+#### Run-time Performance
 
 `epanda` and `bpanda` are **MUCH** slower than `pie` and `box`.  `pie` and `box` 
 may only take seconds to run on the same image that `epanda` and `bpanda`
 take several minutes to complete.
+
+
+
+## Description of the Algorithm
+
+```
+
+if shape==pie:
+   region = pie(xcenter,ycenter,inner,outer,start,stop)
+elif shape == epanda
+   region = ellipse(xcenter,ycenter,outer,outer*ellipticity)*
+            !ellipse(xcenter,ycenter,inner,innter*ellipticity)*
+            sector(xcenter,ycenter,start,stop)
+elif shape == bpanda
+   region = box(xcenter,ycenter,outer,outer*ellipticity)*
+            !box(xcenter,ycenter,inner,innter*ellipticity)*
+            sector(xcenter,ycenter,start,stop)
+else shape == box
+   region = box(x,y,xlen,ylen,start)
+
+
+Read the infile 2D image.
+
+For shape != box:
+    draw a region at xcenter,ycenter,inner=0,outer=rstart, start=0, stop=360.  
+    All pixels in that region are added the first group.
+
+Draw a region at xcenter, ycenter, inner=rstart, outer=rstop, start=astart, stop=astop+astart.
+
+Divide that region into 4 quadrants:
+
+    let dr_2 = (rstop-rstart)/2.0
+    let da_2 = astop/2.0
+
+    Q1: inner=rstart outer=rstart+dr_2 start=astart stop=astart+da_2
+    Q2: inner=rstart+dr_2 outer=rstop start=astart stop=astart+da_2
+    Q3: inner=rstart outer=rstart+dr_2 start=astart+da_2 stop=astop+astart
+    Q4: inner=rstart+dr_2 outer=rstop start=astart+da_2 stop=astop+astart
+
+Compute the SNR in Q1, Q2, Q3, Q4.
+
+  If inerrfile is none or blank:
+     # The Gaussian approximation: snr=N/sqrt(n)=sqrt(n)
+
+     SNR=sqrt(SUM(p_q))
+     
+     where p_q are the infile pixel values inside the quadrant Q region.
+     
+     NULL values, NaN/Inf values, and pixels outside the image subspace
+     do not contribute to the sum.
+
+  else:
+  
+  
+
+
+
+
+
+```
+
