@@ -17,6 +17,65 @@ a `box` mode which emulates the behavior of the original `dmnautilus` tool.
 > 
 > `panda` is from `SAOImage ds9`.  It means: _pie and annulus_.
 
+
+## Installation Instructions
+
+Users must have CIAO installed and have sourced the appropriate 
+ciao setup script for their environment (eg `bash`|`tcsh` and `conda`|`ciao-install`).
+Users do not need to have the ciao source code installed.
+
+For internal CXC users, they can use the `Makefile.cxc` for example in 
+their views.
+
+```bash
+cd /tmp
+git clone https://github.com/kglotfelty/dmradar
+cd dmradar
+
+mkdir -p .../src/da/analysis/dmtools/dmradar
+cp src/* .../src/da/analysis/dmtools/dmradar
+cd .../src/da/analysis/dmtools/dmradar
+rm Makefile.am Makefile.in
+cp Makefile.cxc Makefile
+make
+make install
+```
+
+The test script, inputs, and save data are in the `dmradar/test` 
+directory.
+
+For external users, this tool uses the `dmimgio` local 
+library. This library needs to be built into your CIAO installation
+
+```bash
+git clone https://github.com/kglotfelty/dmimgio
+cd dmimgio
+./configure --prefix=$ASCDS_INSTALL
+make
+make install
+```
+
+If you get an error about `aclocal` then you may need to run
+
+```bash
+./autogen.sh
+```
+
+before running `configure`.
+
+Then you can install `dmradar` in the same way
+
+```bash
+git clone https://github.com/kglotfelty/dmradar
+cd dmradar
+./configure --prefix=$ASCDS_INSTALL
+make
+make check
+make install
+```
+
+
+
 ## Examples
 
 ### `pie` (default)
@@ -52,7 +111,7 @@ The `outmaskfile` contains a `REGION` block containing `pie` shapes which
 are displayed automatically by `ds9`.
 
 
-### `epanda`
+### pandas
 
 
 ```bash
