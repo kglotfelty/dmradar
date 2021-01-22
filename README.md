@@ -303,7 +303,6 @@ the SNR value computed for that region.
 . The output area array for all the pixel in that region are assigned the
 area, defined as the number of pixels, in that region.
 
-  
 
 ```
 
