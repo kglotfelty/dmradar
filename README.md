@@ -182,6 +182,10 @@ take several minutes to complete.
 
 ## Description of the Algorithm
 
+
+![ds9 animation](doc/radar.gif)
+
+
 ```
 
 if shape==pie:
