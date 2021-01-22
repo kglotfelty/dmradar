@@ -185,7 +185,7 @@ Read the infile 2D image.
 
 For shape != box:
     draw a region at xcenter,ycenter,inner=0,outer=rstart, start=0, stop=360.  
-    All pixels in that region are added the first group.
+    All pixels in that region are added the first group, id=1
 
 Draw a region at xcenter, ycenter, inner=rstart, outer=rstop, start=astart, stop=astop+astart.
 
@@ -255,13 +255,13 @@ elif method == 3:
   
 else method == 4:
 
-  If the SNR for all 4 quandrants are ABOVE the threshold, then
+  If the SNR for all 4 quadrants are ABOVE the threshold, then
   the individual quadrants are processed.
   
   
 The process continues until 
 
-. The number of quandrants above|below threshold no longer satisfies the
+. The number of quadrants above|below threshold no longer satisfies the
   condition for the method setting.
 . Or the radius, dr_2, becomes smaller than the minimum allowed value, minradius parameter.
 . Or the angle, da_2, becomes smaller than the minimum allowed value, minangle parameter.
@@ -270,8 +270,8 @@ The process continues until
 If a quadrant contains only NULL, NaN, Inf, or pixels outside the
 data subspace, then the quadrant is treated as if if meets the 
 acceptance criteria to allow further splitting appropriate for the method.
-No special consideration for quandrants with only some Null/NaN/out-of-
-subpsace pixels.
+No special consideration for quadrants with only some Null/NaN/out-of-
+subspace pixels.
 
 When pixels in a quadrant are grouped
 
