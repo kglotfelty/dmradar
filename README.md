@@ -183,7 +183,7 @@ take several minutes to complete.
 ## Description of the Algorithm
 
 
-![ds9 animation](doc/radar.gif)
+![ds9 animation](doc/pie.gif)
 
 
 ```
