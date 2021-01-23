@@ -53,6 +53,7 @@ dmDataType GlobalDataType;
 dmDescriptor *GlobalXdesc = NULL;
 dmDescriptor *GlobalYdesc = NULL;
 short *GlobalPixMask = NULL;
+short GlobalVerbose = 0;
 
 
 float GlobalSNRThresh;          /* i: SNR threshold */
@@ -89,9 +90,6 @@ typedef struct {
  */
 #include "dmimgio.h"
 
-#ifdef DEMO_MODE
-FILE *global_demo_file;
-#endif
 
 
 /* ------Prototypes ----------------------- */
@@ -236,6 +234,13 @@ int make_pie( regRegion *reg,
     reg_ang[1] = b_min + b_len;
     regAppendShape(reg, "Pie", 1, 1, &GlobalX0, &GlobalY0, 1, reg_rad,
                    reg_ang, 0, 0);
+
+    if (GlobalVerbose >= 2) {
+        // ds9 format: panda(x,y,a0,a1,1,r0,r1,1)
+        printf("panda(%g,%g,%g,%g,1,%g,%g,1)\n", GlobalX0, GlobalY0,
+                reg_ang[0], reg_ang[1], reg_rad[0], reg_rad[1]);
+    }
+
     return(0);
 }
 
@@ -272,6 +277,11 @@ int make_epanda( regRegion *reg,
         regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
                     reg_ang, 0, 0);
     }
+    if (GlobalVerbose >= 2) {
+        // ds9 format: panda(x,y,a0,a1,1,r0,r1,1)
+        printf("epanda(%g,%g,%g,%g,1,%g,%g,1)\n", GlobalX0, GlobalY0,
+                reg_ang[0], reg_ang[1], r[0], r[1]);
+    }
 
     return(0);
 }
@@ -307,6 +317,11 @@ int make_bpanda( regRegion *reg,
         regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
                     reg_ang, 0, 0);
     }
+    if (GlobalVerbose >= 2) {
+        // ds9 format: panda(x,y,a0,a1,1,r0,r1,1)
+        printf("bpanda(%g,%g,%g,%g,1,%g,%g,1)\n", GlobalX0, GlobalY0,
+                reg_ang[0], reg_ang[1], r[0], r[1]);
+    }
     return(0);
 }
 
@@ -341,6 +356,13 @@ int make_rotbox( regRegion *reg,
     double ll[2] = { a_len+FUDGE_FACTOR, b_len+FUDGE_FACTOR };
     regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
                    &GlobalStartAngle, 0, 0);
+
+    if (GlobalVerbose >= 2) {
+        // ds9 format: box(x,y,xlen,ylen,angle)
+        printf("box(%g,%g,%g,%g,,%g)\n", a_min, b_min, ll[0], ll[1],
+                GlobalStartAngle);
+    }
+
     return(0);
 }
 
@@ -384,21 +406,6 @@ regRegion *make_region(regRegion *inreg,
         *yl = jhi - jlo + 4;
     }
 
-
-
-#ifdef DEMO_MODE
-
-    if (inreg) {
-        // "epanda(4182.4908,3882.4997,44.993503,89.993503,1,100,75,400,300,1,19.993503)"
-
-        fprintf( global_demo_file, "physical; epanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n",
-          GlobalX0,GlobalY0, b_min-GlobalStartAngle, b_min+b_len-GlobalStartAngle,
-          a_min, a_min* GlobalEllipticity,
-          (a_min+a_len), (a_min+a_len)*GlobalEllipticity, GlobalStartAngle );
-    }
-
-
-#endif
 
     return reg;
 }
@@ -1001,7 +1008,10 @@ Parameters *load_parameters(void)
     clgetstr("outmaskfile", par->maskfile, DS_SZ_FNAME);
     clgetstr("outsnrfile", par->snrfile, DS_SZ_FNAME);
     clgetstr("outareafile", par->areafile, DS_SZ_FNAME);
+    GlobalVerbose = clgeti("verbose");
     par->clobber = clgetb("clobber");
+
+    // TODO: print params verbose > 0.
 
     return(par);
 }
@@ -1072,12 +1082,6 @@ int abin(void)
     }
 
 
-#ifdef DEMO_MODE
-    global_demo_file = fopen("demo.reg", "w");
-#endif
-
-
-
     /* Start Algorithm */
     if ( polar_limits == GlobalLimitsFunction ) {
         if (GlobalInnerRadius > 0) {
@@ -1092,11 +1096,6 @@ int abin(void)
     if ( 0 != write_outputs( inBlock, pp)) {
         return(-1);
     }
-
-
-#ifdef DEMO_MODE
-    fclose( global_demo_file);
-#endif
 
 
     /* Must keep open until now to do all the wcs/hdr copies */

@@ -16,6 +16,6 @@ inerrfile,f,h,"",,,"Input error on image"
 outmaskfile,f,h,"",,,"Output mask image"
 outsnrfile,f,h,"",,,"Output SNR image"
 outareafile,f,h,"",,,"Output area image"
-verbose,i,h,0,0,0,"Tool verbosity"
+verbose,i,h,0,0,5,"Tool verbosity"
 clobber,b,h,no,,,"Clobber outputs"
 mode,s,h,ql,,,
