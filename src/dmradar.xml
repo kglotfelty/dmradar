@@ -449,15 +449,10 @@ shape_outer *! shape_inner * sector
             </PARA>
          </DESC>
       </PARAM>
-      <PARAM def="0" max="0" min="0" name="verbose" reqd="no" type="integer">
+      <PARAM def="0" max="5" min="0" name="verbose" reqd="no" type="integer">
          <SYNOPSIS>
 	Tool chatter level
          </SYNOPSIS>
-         <DESC>
-            <PARA>
-	Currently disabled.
-            </PARA>
-         </DESC>
       </PARAM>
       <PARAM def="no" name="clobber" reqd="no" type="boolean">
          <SYNOPSIS>
