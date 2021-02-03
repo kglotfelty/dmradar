@@ -290,6 +290,9 @@ int make_epanda( regRegion *reg,
 /*
  *
  * similar to above, but now using rotbox's instead of ellipses
+ * 
+ * rotbox's use the 'r' value as the total side length, so need to 
+ * scale r*2.
  *
  */
 int make_bpanda( regRegion *reg,
@@ -304,11 +307,11 @@ int make_bpanda( regRegion *reg,
     reg_ang[1] = b_min + b_len;
 
     double r[2];
-    r[0] = a_min+a_len;
+    r[0] = 2*(a_min+a_len);
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
-    r[0] = a_min;
+    r[0] = 2*a_min;
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalStartAngle, 0, 0);
