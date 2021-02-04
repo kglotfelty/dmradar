@@ -102,7 +102,7 @@ toolname="dmradar"
 
 # set up list of tests
 # !!4
-alltests="new_zero new_one new_two new_three new_four new_with_subspace new_rotated"
+alltests="new_zero new_one new_two new_three new_four new_with_subspace new_rotated pie epanda bpanda box"
 
 # "short" test to run
 # !!5
@@ -220,39 +220,37 @@ do
     ### FIXME!!!! replace LOCAL_SAVE with $SAVDIR
     
     new_zero )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=0 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                
             ;;
             
     new_one )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=1 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                
             ;;
             
     new_two )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=2 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                
-
             ;;
             
     new_three )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=3 shape=pie  outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                
-
             ;;
             
     new_four )   test1_string="dmradar  infile=$INDIR/img.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 shape=pie outmask=${outfile}.map outsnr=${outfile}.snr outarea=${outfile}.area rstart=20 x=4274.5 y=3954.5"
-                
-
             ;;
             
     new_rotated)   test1_string="dmradar  infile=$INDIR/img+rot.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
-                
             ;;
 
     new_with_subspace )   test1_string="dmradar  infile=$INDIR/img+rot+dss.fits outfile=$outfile snr=15.8 mode=h clob+ method=4 outmask=${outfile}.map rstart=20 x=4274.5 y=3954.5"
-                
-
             ;;
 
+    pie) test1_string="dmradar infile=$INDIR/unit.fits outfile=$outfile snr=10 xcenter=4134 ycenter=4153 method=4 shape=pie rstart=100 rstop=600 astart=45 astop=90 ellipticity=1 rotang=0 minradius=5 minangle=5 inerrfile= outmaskfile=${outfile}.map outsnrfile= outareafile= verbose=0 clobber=yes mode=h"
+            ;;
 
+    epanda) test1_string="dmradar infile=$INDIR/unit.fits outfile=$outfile snr=10 xcenter=4134 ycenter=4153 method=4 shape=epanda rstart=100 rstop=600 astart=45 astop=90 ellipticity=0.5 rotang=90 minradius=5 minangle=5 inerrfile= outmaskfile=${outfile}.map outsnrfile= outareafile= verbose=0 clobber=yes mode=h"
+            ;;
 
+    bpanda) test1_string="dmradar infile=$INDIR/unit.fits outfile=$outfile snr=10 xcenter=4134 ycenter=4153 method=4 shape=bpanda rstart=100 rstop=600 astart=45 astop=90 ellipticity=0.5 rotang=60 minradius=5 minangle=5 inerrfile= outmaskfile=${outfile}.map outsnrfile= outareafile= verbose=0 clobber=yes mode=h"
+            ;;
+
+    box) test1_string="dmradar infile=$INDIR/unit.fits outfile=$outfile snr=10 xcenter=4134 ycenter=4153 method=4 shape=box rstart=100 rstop=600 astart=45 astop=90 ellipticity=0.5 rotang=60 minradius=5 minangle=5 inerrfile= outmaskfile=${outfile}.map outsnrfile= outareafile= verbose=0 clobber=yes mode=h"
+            ;;
   esac
 
   echo $test1_string | tee -a  $LOGFILE 
