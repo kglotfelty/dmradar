@@ -304,22 +304,26 @@
 
     <PARAM name="astart" type="real" def="0" min="0">
       <SYNOPSIS>
-        The starting angle, degrees CCW +X axis.
+        The starting angle, in degrees CCW from the +X axis.
       </SYNOPSIS>
       <DESC>
         <PARA>
-            The starting angle for the major axis of the shape. This 
-            essentially allows for the shapes to be rotated.        
+            Users can choose to use the entire range of angles
+            (0:360), or can compute the algorithm in just a
+            specific sector|wedge of the data.  This value is
+            the starting angle for the wedge to include in the 
+            algorithm.  It is measures in degrees, counter-clock-wise (CCW)
+            from the +X axis.
         </PARA>
       </DESC>
     </PARAM>
     <PARAM name="astop" type="string" def="360" min="0">
       <SYNOPSIS>
-        The stopping angle, measured in degrees from astart CCW.
+        The stopping angle, measured in degrees CCW from astart.
       </SYNOPSIS>
       <DESC>
         <PARA>
-            The astop is really the number of degrees to include in the
+            The astop is the number of degrees to include in the
             grid.  Pixels outside the range astart to astart+astop are
             not grouped.  Setting astop=360 includes all angles.
             Setting to less than 360 means only a wedge of angles will
@@ -340,13 +344,19 @@
           A value of 0 mean minor=0, which is bad -- basically the 
           shapes collapse down to a line.        
         </PARA>
-        <PARA>
-            The major axis is drawn at an angle of "astart", measured
-            counter clockwise (CCW) from the +X axis.
-        </PARA>
-
       </DESC>
     </PARAM>
+
+    <PARAM name="rotang" type="read" def="0" min="0" max="360">
+      <SYNOPSIS>
+        Rotation angle of the major axis for epanda and bpanda regions.
+      </SYNOPSIS>
+      <PARA>
+        This value is in degrees, measured counter-clock-wise from
+        the +X axis.      
+      </PARA>
+    </PARAM>
+
 
     <PARAM name="minradius" type="real" def="0.5" min="0">
       <SYNOPSIS>

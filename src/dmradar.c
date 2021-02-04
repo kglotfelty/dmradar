@@ -67,6 +67,7 @@ double GlobalStopAngle;         // = 360.0;
 double GlobalMinRadius;         // = 0.5;
 double GlobalMinAngle;          // = 1 ;
 double GlobalEllipticity;
+double GlobalRotang;            // Rotation angle of epanda|bpanda
 int (*GlobalShapeFunction)(regRegion *r, double a_m, double b_m, double a_l, double b_l) = NULL;
 void (*GlobalLimitsFunction)( double a_m, double b_m, double a_l, double b_l, double p[4], double q[4]) = NULL;
 
@@ -267,11 +268,11 @@ int make_epanda( regRegion *reg,
     r[0] = a_min+a_len;
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
-                   &GlobalStartAngle, 0, 0);
+                   &GlobalRotang, 0, 0);
     r[0] = a_min;
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
-                   &GlobalStartAngle, 0, 0);
+                   &GlobalRotang, 0, 0);
 
     if ( b_len < 360.0 ) {
         regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
@@ -310,11 +311,11 @@ int make_bpanda( regRegion *reg,
     r[0] = 2*(a_min+a_len);
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 1, 1, &GlobalX0, &GlobalY0, 1, r,
-                   &GlobalStartAngle, 0, 0);
+                   &GlobalRotang, 0, 0);
     r[0] = 2*a_min;
     r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
-                   &GlobalStartAngle, 0, 0);
+                   &GlobalRotang, 0, 0);
 
     if (b_len < 360.0) {
         regAppendShape(reg, "sector", 1, 0, &GlobalX0, &GlobalY0, 1, NULL,
@@ -358,12 +359,12 @@ int make_rotbox( regRegion *reg,
 
     double ll[2] = { a_len+FUDGE_FACTOR, b_len+FUDGE_FACTOR };
     regAppendShape(reg, "Rotbox", 1, 1, &a_min, &b_min, 1, ll,
-                   &GlobalStartAngle, 0, 0);
+                   &GlobalRotang, 0, 0);
 
     if (GlobalVerbose >= 2) {
         // ds9 format: box(x,y,xlen,ylen,angle)
         printf("box(%g,%g,%g,%g,,%g)\n", a_min, b_min, ll[0], ll[1],
-                GlobalStartAngle);
+                GlobalRotang);
     }
 
     return(0);
@@ -606,7 +607,7 @@ void cartesian_limits( double a_min,
     dqq = b_len/4.0;
 
     double rot_x, rot_y;
-    double rad_ang = GlobalStartAngle*DEG2RAD;
+    double rad_ang = GlobalRotang*DEG2RAD;
     double c_a = cos(rad_ang);
     double s_a = sin(rad_ang);
 
@@ -1003,6 +1004,7 @@ Parameters *load_parameters(void)
     GlobalStopAngle = clgetd("astop");
 
     GlobalEllipticity = clgetd("ellipticity");
+    GlobalRotang = clgetd("rotang");
 
     GlobalMinRadius = clgetd("minradius");
     GlobalMinAngle = clgetd("minangle");
@@ -1034,6 +1036,8 @@ int map_shapes( char *shape )
     } else if ( 0 == strcmp(shape, "box")) {
         GlobalShapeFunction = make_rotbox;
         GlobalLimitsFunction = cartesian_limits;
+        GlobalInnerRadius *= 2.0;    // rotboxes need total length
+        GlobalOuterRadius *= 2.0;
     } else {
         err_msg("ERROR: Unknown shape='%s'", shape);
         return(-1);
