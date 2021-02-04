@@ -1,4 +1,4 @@
-AC_INIT([dmradar], [4.13.0], [glotfeltyk@si.edu])
+AC_INIT([dmradar], [4.13.1], [glotfeltyk@si.edu])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_PROG_CC
 AM_PROG_CC_C_O
