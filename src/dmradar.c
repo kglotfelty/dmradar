@@ -61,9 +61,9 @@ enum { ZERO_ABOVE = 0, ONE_ABOVE, TWO_ABOVE, THREE_ABOVE, ALL_ABOVE } GlobalSpli
 double GlobalX0;                // =  4274.5; // 4001.9; //4274.0;
 double GlobalY0;                // =  3956.0; // 3850.5; // 3954.0;
 double GlobalInnerRadius;       // = 5.0;
-double GlobalOuterRadius;       // = 1000.0;
+double GlobalRadiusRange;       // = 1000.0;
 double GlobalStartAngle;        // = 0.0;
-double GlobalStopAngle;         // = 360.0;
+double GlobalAngleRange;         // = 360.0;
 double GlobalMinRadius;         // = 0.5;
 double GlobalMinAngle;          // = 1 ;
 double GlobalEllipticity;
@@ -205,12 +205,12 @@ int invert_coords(dmDescriptor *xdesc,
 
 /* Which shapes use which parameters?
  *
- *  | shape    |rstart |rstop |astart |astop |minrad |minang |ellip |
- *  |----------|-------|------|-------|------|-------|-------|------|
- *  | pie      | +     | +    |  +    | +    |  +    |  +    |  o   |
- *  | epanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
- *  | bpanda   | +     | +    |  +    | +    |  +    |  +    |  +   |
- *  | box      | o     | +    |  +    | o    |  +    |  o    |  +   |
+ *  | shape    |rinner |router |astart |arange |minrad |minang |ellip | rotang |
+ *  |----------|-------|-------|-------|-------|-------|-------|------|--------|
+ *  | pie      | +     | +     |  +    | +     |  +    |  +    |  o   | o      |
+ *  | epanda   | +     | +     |  +    | +     |  +    |  +    |  +   | +      |
+ *  | bpanda   | +     | +     |  +    | +     |  +    |  +    |  +   | +      |
+ *  | box      | o     | +     |  +    | o     |  +    |  o    |  +   | +      |
  *
  */
 
@@ -988,6 +988,7 @@ Parameters *load_parameters(void)
     if ( NULL == par ) {
         return(NULL);
     }
+    double router;  // r_outer 
 
     /* Read in all the data */
     clgetstr("infile", par->infile, DS_SZ_FNAME);
@@ -998,10 +999,17 @@ Parameters *load_parameters(void)
     par->method = clgeti("method");
     clgetstr( "shape", par->shape, 99 );
 
-    GlobalInnerRadius = clgetd("rstart");
-    GlobalOuterRadius = clgetd("rstop");
+    GlobalInnerRadius = clgetd("rinner");
+    
+    router = clgetd("router");
+    if ( GlobalInnerRadius >= router ) {
+        err_msg("ERROR: Inner radius must be less than the outer radius");
+        return (NULL);
+    }
+
+    GlobalRadiusRange = router - GlobalInnerRadius;
     GlobalStartAngle = clgetd("astart");
-    GlobalStopAngle = clgetd("astop");
+    GlobalAngleRange = clgetd("arange");
 
     GlobalEllipticity = clgetd("ellipticity");
     GlobalRotang = clgetd("rotang");
@@ -1037,7 +1045,7 @@ int map_shapes( char *shape )
         GlobalShapeFunction = make_rotbox;
         GlobalLimitsFunction = cartesian_limits;
         GlobalInnerRadius *= 2.0;    // rotboxes need total length
-        GlobalOuterRadius *= 2.0;
+        GlobalRadiusRange *= 2.0;
     } else {
         err_msg("ERROR: Unknown shape='%s'", shape);
         return(-1);
@@ -1092,12 +1100,12 @@ int abin(void)
     /* Start Algorithm */
     if ( polar_limits == GlobalLimitsFunction ) {
         if (GlobalInnerRadius > 0) {
-            fill_region(0, GlobalStartAngle, GlobalInnerRadius, GlobalStopAngle);
+            fill_region(0, GlobalStartAngle, GlobalInnerRadius, GlobalAngleRange);
         }
-        abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalOuterRadius,
-                 GlobalStopAngle);
+        abin_rec(GlobalInnerRadius, GlobalStartAngle, GlobalRadiusRange,
+                 GlobalAngleRange);
     } else {
-        abin_rec( GlobalX0, GlobalY0, GlobalOuterRadius, GlobalOuterRadius*GlobalEllipticity);
+        abin_rec( GlobalX0, GlobalY0, GlobalRadiusRange, GlobalRadiusRange*GlobalEllipticity);
     }
 
     if ( 0 != write_outputs( inBlock, pp)) {

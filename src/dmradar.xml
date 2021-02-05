@@ -208,7 +208,7 @@
         </PARA>
         <PARA>
           The inner most shape, centered on this location,  
-          out to a radius of rstart is always the first bin.        
+          out to a radius of rinner is always the first bin.        
         </PARA>      
       </DESC>    
     </PARAM>
@@ -278,7 +278,7 @@
     </PARAM>
 
 
-    <PARAM name="rstart" type="real" def="5" min="0">
+    <PARAM name="rinner" type="real" def="5" min="0">
       <SYNOPSIS>
         The inner most radius, in physical pixels.
       </SYNOPSIS>
@@ -290,7 +290,7 @@
       </DESC>
     </PARAM>
 
-    <PARAM name="rstop" type="real" def="1000" min="0">
+    <PARAM name="router" type="real" def="1000" min="0">
       <SYNOPSIS>
         The outer most radius, in physical pixels.
       </SYNOPSIS>
@@ -317,15 +317,15 @@
         </PARA>
       </DESC>
     </PARAM>
-    <PARAM name="astop" type="string" def="360" min="0">
+    <PARAM name="arange" type="string" def="360" min="0">
       <SYNOPSIS>
         The stopping angle, measured in degrees CCW from astart.
       </SYNOPSIS>
       <DESC>
         <PARA>
-            The astop is the number of degrees to include in the
-            grid.  Pixels outside the range astart to astart+astop are
-            not grouped.  Setting astop=360 includes all angles.
+            The arange is the number of degrees to include in the
+            grid.  Pixels outside the range astart to astart+arange are
+            not grouped.  Setting arange=360 includes all angles.
             Setting to less than 360 means only a wedge of angles will
             be grouped. 
         </PARA>
