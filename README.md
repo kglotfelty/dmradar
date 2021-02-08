@@ -112,7 +112,7 @@ dmradar \
   xcen=$xcenter ycen=$ycenter\
   method=4 \
   shape=pie \
-  rstart=$inner_radius rstop=1000 \
+  rinner=$inner_radius router=1025 \
   outmask=dmradar/pie4.map \
   mode=h clob+
 ```
@@ -139,7 +139,7 @@ dmradar \
   xcen=$xcenter ycen=$ycenter\
   method=4 \
   shape=${shape} \
-  rstart=$inner_radius rstop=1000 \
+  rinner=$inner_radius router=1020 rotang=30\
   outmask=dmradar/${shape}4.map \
   minrad=10 minangl=15 ell=0.7 \
   mode=h clob+
@@ -192,11 +192,11 @@ if shape==pie:
    region = pie(xcenter,ycenter,inner,outer,start,stop)
 elif shape == epanda
    region = ellipse(xcenter,ycenter,outer,outer*ellipticity)*
-            !ellipse(xcenter,ycenter,inner,innter*ellipticity)*
+            !ellipse(xcenter,ycenter,inner,inner*ellipticity)*
             sector(xcenter,ycenter,start,stop)
 elif shape == bpanda
    region = box(xcenter,ycenter,outer,outer*ellipticity)*
-            !box(xcenter,ycenter,inner,innter*ellipticity)*
+            !box(xcenter,ycenter,inner,inner*ellipticity)*
             sector(xcenter,ycenter,start,stop)
 else shape == box
    region = box(x,y,xlen,ylen,start)
@@ -205,20 +205,22 @@ else shape == box
 Read the infile 2D image.
 
 For shape != box:
-    draw a region at xcenter,ycenter,inner=0,outer=rstart, start=0, stop=360.  
+    draw a region at xcenter,ycenter,inner=0,outer=rstart, rotang=rotang, 
+        start=astart, stop=arange.  
     All pixels in that region are added the first group, id=1
 
-Draw a region at xcenter, ycenter, inner=rstart, outer=rstop, start=astart, stop=astop+astart.
+Draw a region at xcenter, ycenter, inner=rstart, outer=router, 
+    rotang=rotang, start=astart, stop=arange+astart.
 
 Divide that region into 4 quadrants:
 
     let dr_2 = (rstop-rstart)/2.0
-    let da_2 = astop/2.0
+    let da_2 = arange/2.0
 
     Q1: inner=rstart outer=rstart+dr_2 start=astart stop=astart+da_2
     Q2: inner=rstart+dr_2 outer=rstop start=astart stop=astart+da_2
-    Q3: inner=rstart outer=rstart+dr_2 start=astart+da_2 stop=astop+astart
-    Q4: inner=rstart+dr_2 outer=rstop start=astart+da_2 stop=astop+astart
+    Q3: inner=rstart outer=rstart+dr_2 start=astart+da_2 stop=arange+astart
+    Q4: inner=rstart+dr_2 outer=rstop start=astart+da_2 stop=arange+astart
 
     For shape == box:
     
