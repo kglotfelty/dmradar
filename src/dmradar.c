@@ -264,13 +264,13 @@ int make_epanda( regRegion *reg,
     reg_ang[0] = b_min;
     reg_ang[1] = b_min + b_len;
 
-    double r[2];
-    r[0] = a_min+a_len;
-    r[1] = r[0] * GlobalEllipticity;
+    double r[2], major_inner, minor_inner, major_outer, minor_outer;
+    major_outer = r[0] = a_min+a_len;
+    minor_outer = r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalRotang, 0, 0);
-    r[0] = a_min;
-    r[1] = r[0] * GlobalEllipticity;
+    major_inner = r[0] = a_min;
+    minor_inner = r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "ellipse", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalRotang, 0, 0);
 
@@ -279,9 +279,11 @@ int make_epanda( regRegion *reg,
                     reg_ang, 0, 0);
     }
     if (GlobalVerbose >= 2) {
-        // ds9 format: panda(x,y,a0,a1,1,r0,r1,1)
-        printf("epanda(%g,%g,%g,%g,1,%g,%g,1)\n", GlobalX0, GlobalY0,
-                reg_ang[0], reg_ang[1], r[0], r[1]);
+        printf("epanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n", 
+                GlobalX0, GlobalY0,
+                reg_ang[0], reg_ang[1], 
+                major_inner, minor_inner, major_outer, minor_outer,
+                GlobalRotang);
     }
 
     return(0);
@@ -307,13 +309,13 @@ int make_bpanda( regRegion *reg,
     reg_ang[0] = b_min;
     reg_ang[1] = b_min + b_len;
 
-    double r[2];
-    r[0] = 2*(a_min+a_len);
-    r[1] = r[0] * GlobalEllipticity;
+    double r[2], major_inner, minor_inner, major_outer, minor_outer;
+    major_outer = r[0] = 2*(a_min+a_len);
+    minor_outer = r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 1, 1, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalRotang, 0, 0);
-    r[0] = 2*a_min;
-    r[1] = r[0] * GlobalEllipticity;
+    major_inner = r[0] = 2*a_min;
+    minor_inner = r[1] = r[0] * GlobalEllipticity;
     regAppendShape(reg, "rotbox", 0, 0, &GlobalX0, &GlobalY0, 1, r,
                    &GlobalRotang, 0, 0);
 
@@ -322,9 +324,11 @@ int make_bpanda( regRegion *reg,
                     reg_ang, 0, 0);
     }
     if (GlobalVerbose >= 2) {
-        // ds9 format: panda(x,y,a0,a1,1,r0,r1,1)
-        printf("bpanda(%g,%g,%g,%g,1,%g,%g,1)\n", GlobalX0, GlobalY0,
-                reg_ang[0], reg_ang[1], r[0], r[1]);
+        printf("bpanda(%g,%g,%g,%g,1,%g,%g,%g,%g,1,%g)\n", 
+                GlobalX0, GlobalY0,
+                reg_ang[0], reg_ang[1], 
+                major_inner, minor_inner, major_outer, minor_outer,
+                GlobalRotang);
     }
     return(0);
 }
