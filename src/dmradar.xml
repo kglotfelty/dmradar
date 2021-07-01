@@ -347,14 +347,16 @@
       </DESC>
     </PARAM>
 
-    <PARAM name="rotang" type="read" def="0" min="0" max="360">
+    <PARAM name="rotang" type="real" def="0" min="0" max="360">
       <SYNOPSIS>
         Rotation angle of the major axis for epanda and bpanda regions.
       </SYNOPSIS>
+     <DESC>
       <PARA>
         This value is in degrees, measured counter-clock-wise from
         the +X axis.      
       </PARA>
+    </DESC>
     </PARAM>
 
 
