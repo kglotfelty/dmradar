@@ -29,6 +29,7 @@
 
 #include <cxcregion.h>
 #include <dsnan.h>
+#include "dmimgio.h"
 
 #define FLOOR(x)  ((double)(x))
 #define CEIL(x)   ((double)(x))
@@ -36,23 +37,20 @@
 regRegion *GlobalMaskRegion;
 
 
-/* Okay, global variables are a bad idea, excpet when doing recursion and
+/* Okay, global variables are a bad idea, except when doing recursion and
  * we are passing the same data to each level ... more data gets pushed on the
  * stack and causes crashes.  Also using global variables can make it
  * run much faster so we'll bite the bullet here. */
-void *GlobalData;               /* i: data array */
 float *GlobalDErr;              /* i: error array */
 float *GlobalOutData;           /* o: output array */
 float *GlobalOutArea;           /* o: output area array */
 float *GlobalOutSNR;            /* o: output SNR */
 unsigned long *GlobalMask;      /* o: output mask */
-long GlobalXLen;                /* i: length of x-axis (full img) */
-long GlobalYLen;                /* i: length of y-axis (full img) */
-long *GlobalLAxes;            /* X,Y lens togeether */
-dmDataType GlobalDataType;
-dmDescriptor *GlobalXdesc = NULL;
-dmDescriptor *GlobalYdesc = NULL;
-short *GlobalPixMask = NULL;
+
+
+Image *GlobalImage;
+
+
 short GlobalVerbose = 0;
 
 
@@ -84,12 +82,6 @@ typedef struct {
     short clobber;
 } Parameters;
 
-
-/* Using the dmtools/dmimgio routines removes lots of duplicate code that was
- * originally here.  Also allow us to keep track of NULL/NaN value pixels
- * more easily
- */
-#include "dmimgio.h"
 
 
 
@@ -401,9 +393,9 @@ regRegion *make_region(regRegion *inreg,
 
         regExtent(reg, hack_range, hack_range, xrange, yrange);
         double ilo, jlo, ihi, jhi;
-        invert_coords(GlobalXdesc, GlobalYdesc, xrange[0], yrange[0], &ilo,
+        invert_coords(GlobalImage->xdesc, GlobalImage->ydesc, xrange[0], yrange[0], &ilo,
                       &jlo);
-        invert_coords(GlobalXdesc, GlobalYdesc, xrange[1], yrange[1], &ihi,
+        invert_coords(GlobalImage->xdesc, GlobalImage->ydesc, xrange[1], yrange[1], &ihi,
                       &jhi);
 
         /* Add some padding to the bounding box limits */
@@ -452,28 +444,27 @@ double get_snr(double a_min,
 
     /* Determine SNR for current sub-image */
     for (ii = xs-1; ii <= (xl + xs)+1; ii++) {
-        if (ii < 0 || ii >= GlobalXLen) {
+        if (ii < 0 || ii >= GlobalImage->lAxes[0]) {
             continue;
         }
         for (jj = ys-1; jj <= (yl + ys)+1; jj++) {
             long pix;
-            if (jj < 0 || jj >= GlobalYLen) {
+            if (jj < 0 || jj >= GlobalImage->lAxes[1]) {
                 continue;
             }
 
-            convert_coords(GlobalXdesc, GlobalYdesc, ii, jj, &px, &py);
+            convert_coords(GlobalImage->xdesc, GlobalImage->ydesc, ii, jj, &px, &py);
             if (0 == regInsideRegion(reg, px, py)) {
                 continue;
             }
 
-            pix = ii + (jj * GlobalXLen);
+            pix = ii + (jj * GlobalImage->lAxes[0]);
 
             if (0 != GlobalMask[pix]) {
                 continue;
             }
 
-            pixval = get_image_value(GlobalData, GlobalDataType, ii, jj,
-                                     GlobalLAxes, GlobalPixMask);
+            pixval = get_image_value(GlobalImage, ii, jj);
             if (ds_dNAN(pixval)) {
                 continue;
             }
@@ -529,30 +520,29 @@ void fill_region(double a_min,
 
     /* store output values */
     for (ii = xs-1; ii <= xs + xl+1; ii++) {
-        if (ii < 0 || ii >= GlobalXLen) {
+        if (ii < 0 || ii >= GlobalImage->lAxes[0]) {
             continue;
         }
         for (jj = ys-1; jj <= ys + yl+1; jj++) {
             long pix;
 
-            if (jj < 0 || jj >= GlobalYLen) {
+            if (jj < 0 || jj >= GlobalImage->lAxes[1]) {
                 continue;
             }
 
-            convert_coords(GlobalXdesc, GlobalYdesc, ii, jj, &px, &py);
+            convert_coords(GlobalImage->xdesc, GlobalImage->ydesc, ii, jj, &px, &py);
             if (0 == regInsideRegion(reg, px, py)) {
                 continue;
             }
 
 
-            pix = ii + (jj * GlobalXLen);
+            pix = ii + (jj * GlobalImage->lAxes[0]);
 
             if (0 != GlobalMask[pix]) {
                 continue;
             }
 
-            pixval = get_image_value(GlobalData, GlobalDataType, ii, jj,
-                                     GlobalLAxes, GlobalPixMask);
+            pixval = get_image_value(GlobalImage, ii, jj);
 
             if (ds_dNAN(pixval)) {
                 GlobalOutData[pix] = pixval; // ie NaN
@@ -746,18 +736,17 @@ int load_error_image(char *errimg)
 {
 
     /* Read Error Image */
-    unsigned long npix = GlobalXLen * GlobalYLen;
+    unsigned long npix = GlobalImage->lAxes[0] * GlobalImage->lAxes[1];
 
     if ((strlen(errimg) == 0) || (ds_strcmp_cis(errimg, "none") == 0)) {
 
         double pixval;
         long xx, yy, jj;
 
-        for (yy = 0; yy < GlobalYLen; yy++) {
-            for (xx = 0; xx < GlobalXLen; xx++) {
-                jj = xx + yy * GlobalXLen;
-                pixval = get_image_value(GlobalData, GlobalDataType, xx, yy,
-                                    GlobalLAxes, GlobalPixMask);
+        for (yy = 0; yy < GlobalImage->lAxes[1]; yy++) {
+            for (xx = 0; xx < GlobalImage->lAxes[0]; xx++) {
+                jj = xx + yy * GlobalImage->lAxes[0];
+                pixval = get_image_value(GlobalImage, xx, yy);
 
                 if (ds_dNAN(pixval)) {
                     GlobalDErr[jj] = 0;
@@ -781,7 +770,7 @@ int load_error_image(char *errimg)
         errDs = dmImageGetDataDescriptor(erBlock);
         enAxes = dmGetArrayDimensions(errDs, &elAxes);
         if ((enAxes != 2) ||
-            (elAxes[0] != GlobalXLen) || (elAxes[1] != GlobalYLen)) {
+            (elAxes[0] != GlobalImage->lAxes[0]) || (elAxes[1] != GlobalImage->lAxes[1])) {
             err_msg
                 ("ERROR: Error image must be 2D image with non-zero axes\n");
             return (-1);
@@ -805,7 +794,7 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
         return(0);
     }
 
-    outBlock = dmImageCreate(outfile, dt, GlobalLAxes, 2);
+    outBlock = dmImageCreate(outfile, dt, GlobalImage->lAxes, 2);
     if (outBlock == NULL) {
         err_msg("ERROR: Could not create output '%s'\n", outfile);
     }
@@ -817,9 +806,9 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
     dmBlockCopyWCS(inBlock, outBlock);
 
     if ( dmFLOAT == dt )  {
-        dmSetArray_f(outDes, (float*)outdata, GlobalLAxes[0]*GlobalLAxes[1]);
+        dmSetArray_f(outDes, (float*)outdata, GlobalImage->lAxes[0]*GlobalImage->lAxes[1]);
     } else if (dmULONG == dt ) {
-        dmSetArray_ul(outDes, (unsigned long*)outdata, GlobalLAxes[0]*GlobalLAxes[1]);
+        dmSetArray_ul(outDes, (unsigned long*)outdata, GlobalImage->lAxes[0]*GlobalImage->lAxes[1]);
     } else {
         return(-1);
     }
@@ -840,33 +829,20 @@ int write_single_output(dmBlock *inBlock, char *outfile, void *outdata, short cl
 dmBlock *load_infile( char *infile)
 {
     /* Read the data */
-    dmBlock *inBlock;
 
-    inBlock = dmImageOpen(infile);
-    if (!inBlock) {
-        err_msg("ERROR: Could not open infile='%s'\n", infile);
-        return (NULL);
+    if (NULL == (GlobalImage=load_image(infile))) {
+        err_msg("ERROR: Problem opening infile '%s'",infile);
+        return(NULL);
     }
 
-    regRegion *dss = NULL;
-    long null;
-    short has_null;
-    GlobalDataType = get_image_data(inBlock, &GlobalData, &GlobalLAxes, &dss, &null,
-                       &has_null);
-    get_image_wcs(inBlock, &GlobalXdesc, &GlobalYdesc);
-    GlobalPixMask = get_image_mask(inBlock, GlobalData, GlobalDataType, GlobalLAxes, dss,
-                       null, has_null, GlobalXdesc, GlobalYdesc);
-    GlobalXLen = GlobalLAxes[0];
-    GlobalYLen = GlobalLAxes[1];
-
-    return(inBlock);
+    return(GlobalImage->block);
 }
 
 
 int allocate_memory(void)
 {
     long npix;
-    npix = (GlobalLAxes[0] * GlobalLAxes[1]);
+    npix = (GlobalImage->lAxes[0] * GlobalImage->lAxes[1]);
     if (npix == 0) {
         err_msg("ERROR: Image is empty (one axis is 0 length)\n");
         return (-1);
@@ -963,7 +939,6 @@ int map_method( short method )
 void free_globals(void)
 {
     /* make valgrind happy */
-    free(GlobalData);
     free(GlobalDErr);
     free(GlobalOutData);
     free(GlobalOutArea);
@@ -1091,6 +1066,8 @@ int abin(void)
     if ( NULL == (inBlock = load_infile( pp->infile))) {
         return(-1);
     }
+
+
 
     if ( 0 != allocate_memory() ) {
         return(-1);
